@@ -14,8 +14,13 @@ import {
   createCombatState,
   projectileConfig,
   updateCombat,
+  splashConfig,
   type ProjectileState,
+  type SplashState,
 } from './game/combat';
+import { createHealthBar } from './game/createHealthBar';
+import enemyShipImageUrl from '../assets/png/default/ships/ship_1.png';
+import { createStationaryEnemy } from './game/enemy';
 
 export function GameCanvas() {
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -69,6 +74,9 @@ export function GameCanvas() {
         x: app.screen.width / 2,
         y: app.screen.height / 2,
         rotation: 0,
+        health: 100,
+        maxHealth: 100,
+        speed: 0,
       };
 
       function syncPlayerSprite() {
@@ -94,8 +102,61 @@ export function GameCanvas() {
 
       const projectileSprites = new Map<ProjectileState, PIXI.Sprite>();
 
+      const splashGraphics = new Map<SplashState, PIXI.Graphics>();
+
       const playerBoundsRadius =
         Math.hypot(playerShipTexture.width, playerShipTexture.height) / 2;
+
+      const playerHealthBar = await createHealthBar();
+
+      const enemyTexture =
+        await PIXI.Assets.load<PIXI.Texture>(enemyShipImageUrl);
+
+      if (cancelled) return;
+
+      const enemyHealthBar = await createHealthBar();
+
+      if (cancelled) {
+        enemyHealthBar.container.destroy({ children: true });
+        return;
+      }
+
+      const enemy = createStationaryEnemy(
+        player.x,
+        Math.max(playerBoundsRadius, player.y - 220),
+      );
+
+      const enemySprite = new PIXI.Sprite(enemyTexture);
+
+      enemySprite.anchor.set(0.5);
+
+      const enemyBoundsRadius =
+        Math.hypot(enemyTexture.width, enemyTexture.height) / 2;
+
+      app.stage.addChild(enemySprite, enemyHealthBar.container);
+
+      function syncEnemyView() {
+        const isAlive = enemy.health > 0;
+
+        enemySprite.visible = isAlive;
+        enemyHealthBar.container.visible = isAlive;
+
+        enemySprite.position.set(enemy.x, enemy.y);
+        enemySprite.rotation = enemy.rotation + shipRotationOffset;
+
+        enemyHealthBar.update(enemy);
+        enemyHealthBar.container.position.set(
+          enemy.x,
+          enemy.y - enemyBoundsRadius - healthBarGap,
+        );
+      }
+
+      if (cancelled) {
+        playerHealthBar.container.destroy({ children: true });
+        return;
+      }
+
+      app.stage.addChild(playerHealthBar.container);
 
       app.stage.addChild(playerShip);
 
@@ -132,6 +193,55 @@ export function GameCanvas() {
         }
       }
 
+      function syncSplashGraphics() {
+        const activeSplashes = new Set(combat.splashes);
+
+        for (const [splash, graphic] of splashGraphics) {
+          if (!activeSplashes.has(splash)) {
+            graphic.destroy();
+            splashGraphics.delete(splash);
+          }
+        }
+
+        for (const splash of combat.splashes) {
+          let graphic = splashGraphics.get(splash);
+
+          if (!graphic) {
+            graphic = new PIXI.Graphics();
+
+            graphic.ellipse(0, 0, 8, 4).stroke({ color: 0xd9f8ff, width: 2 });
+
+            graphic.ellipse(0, 0, 4, 2).stroke({ color: 0xffffff, width: 1 });
+
+            graphic.position.set(splash.x, splash.y);
+
+            splashGraphics.set(splash, graphic);
+            app.stage.addChild(graphic);
+          }
+
+          const progress = Math.min(
+            1,
+            splash.elapsedSeconds / splashConfig.durationSeconds,
+          );
+
+          graphic.scale.set(1 + progress * 2);
+          graphic.alpha = 1 - progress;
+        }
+      }
+
+      const healthBarGap = 8;
+
+      function syncPlayerHealthBar() {
+        playerHealthBar.update(player);
+
+        playerHealthBar.container.position.set(
+          player.x,
+          player.y - playerBoundsRadius - healthBarGap,
+        );
+      }
+
+      syncPlayerHealthBar();
+
       function updateFrame(ticker: PIXI.Ticker) {
         const deltaSeconds = ticker.deltaMS / 1000;
 
@@ -144,10 +254,13 @@ export function GameCanvas() {
 
         constrainPlayerToArena(player, bounds, playerBoundsRadius);
 
-        updateCombat(combat, player, input, deltaSeconds, bounds);
+        updateCombat(combat, player, input, deltaSeconds, bounds, enemy);
 
         syncPlayerSprite();
         syncProjectileSprites();
+        syncSplashGraphics();
+        syncPlayerHealthBar();
+        syncEnemyView();
       }
 
       app.ticker.add(updateFrame);

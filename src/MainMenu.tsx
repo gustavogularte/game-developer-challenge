@@ -1,6 +1,6 @@
 import './MainMenu.css';
 import titleImageUrl from '../assets/png/default/ui/menu/title_pirate_battle.png';
-import pirateShipImageUrl from '../assets/png/default/ships/ship_14.png';
+import pirateShipImageUrl from '../assets/png/default/ships/ship_2.png';
 
 interface MainMenuProps {
   onPlay: () => void;

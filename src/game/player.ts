@@ -1,9 +1,11 @@
 import type { PlayerInput } from './input';
+import type { HealthState } from './health';
 
-export interface PlayerState {
+export interface PlayerState extends HealthState {
   x: number;
   y: number;
   rotation: number;
+  speed: number;
 }
 
 export interface ArenaBounds {
@@ -12,7 +14,9 @@ export interface ArenaBounds {
 }
 
 export const playerMovementConfig = {
-  moveSpeed: 280,
+  maxSpeed: 180,
+  acceleration: 240,
+  deceleration: 180,
   rotationSpeed: Math.PI,
 };
 
@@ -26,15 +30,21 @@ export function updatePlayerMovement(
   player.rotation +=
     turnDirection * playerMovementConfig.rotationSpeed * deltaSeconds;
 
-  if (!input.moveForward) {
-    return;
+  if (input.moveForward) {
+    player.speed = Math.min(
+      playerMovementConfig.maxSpeed,
+      player.speed + playerMovementConfig.acceleration * deltaSeconds,
+    );
+  } else {
+    player.speed = Math.max(
+      0,
+      player.speed - playerMovementConfig.deceleration * deltaSeconds,
+    );
   }
 
-  player.x +=
-    Math.sin(player.rotation) * playerMovementConfig.moveSpeed * deltaSeconds;
+  player.x += Math.sin(player.rotation) * player.speed * deltaSeconds;
 
-  player.y -=
-    Math.cos(player.rotation) * playerMovementConfig.moveSpeed * deltaSeconds;
+  player.y -= Math.cos(player.rotation) * player.speed * deltaSeconds;
 }
 
 export function constrainPlayerToArena(

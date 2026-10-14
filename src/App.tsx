@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { GameCanvas } from './GameCanvas';
 import { MainMenu } from './MainMenu';
+import { GameScreen } from './GameScreen';
 
 type Screen = 'menu' | 'game';
 
@@ -14,7 +14,7 @@ function App() {
   return currentScreen === 'menu' ? (
     <MainMenu onPlay={startGame} />
   ) : (
-    <GameCanvas />
+    <GameScreen />
   );
 }
 

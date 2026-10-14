@@ -1,0 +1,93 @@
+.game-hud {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  z-index: 10;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+
+  color: #fff0cc;
+  font-weight: 700;
+}
+
+.game-hud__counters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.game-hud__counter {
+  width: 160px;
+  height: 56px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  background-image: url('../assets/png/default/ui/hud/counter_panel.png');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+.game-hud__counter img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.game-hud__health {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.game-hud__heart {
+  width: 32px;
+  height: 32px;
+}
+
+.game-hud__health-bar {
+  position: relative;
+  width: 256px;
+  height: 48px;
+
+  background-image: url('../assets/png/default/ui/hud/health_frame.png');
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+
+.game-hud__health-fill {
+  position: absolute;
+  left: 30px;
+  top: 15px;
+  height: 20px;
+
+  background-size: 256px 48px;
+  background-position: -30px -15px;
+  background-repeat: no-repeat;
+}
+
+.game-hud__health-text {
+  position: absolute;
+  left: 30px;
+  top: 15px;
+  width: 196px;
+  height: 20px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}

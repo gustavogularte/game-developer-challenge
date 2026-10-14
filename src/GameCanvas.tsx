@@ -370,6 +370,7 @@ export function GameCanvas({ onScoreChange }: GameCanvasProps) {
 
               gameAudio?.play('explosion');
               gameAudio?.play('score');
+              gameAudio?.play('enemySinking');
               break;
           }
         }

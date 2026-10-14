@@ -5,15 +5,17 @@ import explosionUrl from '../../assets/sounds/ship_explosion_1.wav';
 import scoreUrl from '../../assets/sounds/score_point.wav';
 import lowHealthUrl from '../../assets/sounds/health_low.wav';
 import oceanUrl from '../../assets/sounds/ocean_ambience_loop.wav';
+import enemySinkingUrl from '../../assets/sounds/ship_sinking.wav';
 
 const sounds = {
-  frontShot: { url: frontShotUrl, volume: 0.5, loop: false },
-  broadside: { url: broadsideUrl, volume: 0.5, loop: false },
-  waterHit: { url: waterHitUrl, volume: 0.3, loop: false },
-  explosion: { url: explosionUrl, volume: 0.6, loop: false },
-  score: { url: scoreUrl, volume: 0.5, loop: false },
-  lowHealth: { url: lowHealthUrl, volume: 0.35, loop: true },
-  ocean: { url: oceanUrl, volume: 0.2, loop: true },
+  frontShot: { url: frontShotUrl, volume: 0.2, loop: false },
+  broadside: { url: broadsideUrl, volume: 0.2, loop: false },
+  waterHit: { url: waterHitUrl, volume: 0.02, loop: false },
+  explosion: { url: explosionUrl, volume: 0.2, loop: false },
+  ocean: { url: oceanUrl, volume: 0.02, loop: true },
+  score: { url: scoreUrl, volume: 0.8, loop: false },
+  lowHealth: { url: lowHealthUrl, volume: 0.3, loop: true },
+  enemySinking: { url: enemySinkingUrl, volume: 0.2, loop: false },
 };
 
 type SoundName = keyof typeof sounds;

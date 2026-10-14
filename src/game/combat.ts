@@ -13,6 +13,17 @@ interface WeaponDefinition {
   muzzles: { forward: number; sideways: number }[];
 }
 
+export interface EnemyDestroyedEvent {
+  type: 'enemyDestroyed';
+  x: number;
+  y: number;
+}
+
+export type CombatEvent =
+  | EnemyDestroyedEvent
+  | { type: 'shotFired'; action: FireAction }
+  | { type: 'waterHit' };
+
 export interface ProjectileState {
   x: number;
   y: number;
@@ -27,6 +38,7 @@ export interface CombatState {
   projectiles: ProjectileState[];
   cooldowns: Record<FireAction, number>;
   splashes: SplashState[];
+  events: CombatEvent[];
 }
 
 export interface SplashState {
@@ -85,6 +97,7 @@ export function createCombatState(): CombatState {
       fireRight: 0,
     },
     splashes: [],
+    events: [],
   };
 }
 
@@ -96,6 +109,8 @@ export function updateCombat(
   bounds: ArenaBounds,
   enemy: EnemyState,
 ): void {
+  combat.events.length = 0;
+
   for (const splash of combat.splashes) {
     splash.elapsedSeconds += deltaSeconds;
   }
@@ -135,6 +150,11 @@ export function updateCombat(
     }
 
     combat.cooldowns[weapon.action] = weapon.cooldownSeconds;
+
+    combat.events.push({
+      type: 'shotFired',
+      action: weapon.action,
+    });
   }
 
   for (const projectile of combat.projectiles) {
@@ -180,6 +200,15 @@ export function updateCombat(
     if (hitEnemy) {
       applyDamage(enemy, projectile.damage);
       projectile.remainingSeconds = 0;
+
+      if (enemy.health === 0) {
+        combat.events.push({
+          type: 'enemyDestroyed',
+          x: enemy.x,
+          y: enemy.y,
+        });
+      }
+
       continue;
     }
 
@@ -198,6 +227,7 @@ export function updateCombat(
         y: projectile.y,
         elapsedSeconds: 0,
       });
+      combat.events.push({ type: 'waterHit' });
     }
   }
 

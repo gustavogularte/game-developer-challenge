@@ -21,8 +21,14 @@ import {
 import { createHealthBar } from './game/createHealthBar';
 import enemyShipImageUrl from '../assets/png/default/ships/ship_1.png';
 import { createStationaryEnemy } from './game/enemy';
+import explosionImageUrl from '../assets/png/default/effects/explosion_1.png';
+import { createGameAudio } from './game/audio';
 
-export function GameCanvas() {
+interface GameCanvasProps {
+  onScoreChange: (score: number) => void;
+}
+
+export function GameCanvas({ onScoreChange }: GameCanvasProps) {
   const containerRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -31,6 +37,7 @@ export function GameCanvas() {
     let initialized = false;
     const input = createPlayerInput();
     let unbindKeyboardInput: (() => void) | undefined;
+    let gameAudio: Awaited<ReturnType<typeof createGameAudio>> | undefined;
 
     async function start() {
       await app.init({
@@ -47,6 +54,8 @@ export function GameCanvas() {
         app.destroy(true, { children: true });
         return;
       }
+
+      let score = 0;
 
       const oceanTexture = await PIXI.Assets.load<PIXI.Texture>(oceanImageUrl);
 
@@ -242,6 +251,78 @@ export function GameCanvas() {
 
       syncPlayerHealthBar();
 
+      const explosionTexture =
+        await PIXI.Assets.load<PIXI.Texture>(explosionImageUrl);
+
+      if (cancelled) return;
+
+      const destructionEffects: {
+        container: PIXI.Container;
+        explosion: PIXI.Sprite;
+        label: PIXI.Text;
+        elapsedSeconds: number;
+      }[] = [];
+
+      const destructionEffectDuration = 0.8;
+
+      function createDestructionEffect(x: number, y: number) {
+        const container = new PIXI.Container();
+        container.position.set(x, y);
+
+        const explosion = new PIXI.Sprite(explosionTexture);
+        explosion.anchor.set(0.5);
+        explosion.scale.set(0.6);
+
+        const label = new PIXI.Text({
+          text: '+1',
+          style: {
+            fontFamily: 'Arial',
+            fontSize: 28,
+            fontWeight: 'bold',
+            fill: '#ffe08a',
+            stroke: {
+              color: '#38240b',
+              width: 4,
+            },
+          },
+        });
+
+        label.anchor.set(0.5);
+        label.y = -40;
+
+        container.addChild(explosion, label);
+        app.stage.addChild(container);
+
+        destructionEffects.push({
+          container,
+          explosion,
+          label,
+          elapsedSeconds: 0,
+        });
+      }
+
+      function updateDestructionEffects(deltaSeconds: number) {
+        for (let index = destructionEffects.length - 1; index >= 0; index--) {
+          const effect = destructionEffects[index];
+
+          effect.elapsedSeconds += deltaSeconds;
+
+          const progress = Math.min(
+            1,
+            effect.elapsedSeconds / destructionEffectDuration,
+          );
+
+          effect.explosion.scale.set(0.6 + progress);
+          effect.label.y = -40 - progress * 35;
+          effect.container.alpha = 1 - progress;
+
+          if (progress === 1) {
+            effect.container.destroy({ children: true });
+            destructionEffects.splice(index, 1);
+          }
+        }
+      }
+
       function updateFrame(ticker: PIXI.Ticker) {
         const deltaSeconds = ticker.deltaMS / 1000;
 
@@ -250,11 +331,48 @@ export function GameCanvas() {
           height: app.screen.height,
         };
 
+        const hasLowHealth =
+          player.maxHealth > 0 &&
+          player.health > 0 &&
+          player.health / player.maxHealth <= 0.3;
+
+        if (hasLowHealth) {
+          gameAudio?.play('lowHealth');
+        } else {
+          gameAudio?.stop('lowHealth');
+        }
+
         updatePlayerMovement(player, input, deltaSeconds);
 
         constrainPlayerToArena(player, bounds, playerBoundsRadius);
 
         updateCombat(combat, player, input, deltaSeconds, bounds, enemy);
+
+        updateDestructionEffects(deltaSeconds);
+
+        for (const event of combat.events) {
+          switch (event.type) {
+            case 'shotFired':
+              gameAudio?.play(
+                event.action === 'fireFront' ? 'frontShot' : 'broadside',
+              );
+              break;
+
+            case 'waterHit':
+              gameAudio?.play('waterHit');
+              break;
+
+            case 'enemyDestroyed':
+              score += 1;
+              onScoreChange(score);
+
+              createDestructionEffect(event.x, event.y);
+
+              gameAudio?.play('explosion');
+              gameAudio?.play('score');
+              break;
+          }
+        }
 
         syncPlayerSprite();
         syncProjectileSprites();
@@ -262,6 +380,18 @@ export function GameCanvas() {
         syncPlayerHealthBar();
         syncEnemyView();
       }
+
+      gameAudio = await createGameAudio().catch((error) => {
+        console.error('Failed to load game audio:', error);
+        return undefined;
+      });
+
+      if (cancelled) {
+        gameAudio?.destroy();
+        return;
+      }
+
+      gameAudio?.play('ocean');
 
       app.ticker.add(updateFrame);
       app.start();
@@ -273,13 +403,15 @@ export function GameCanvas() {
 
     return () => {
       cancelled = true;
+
       unbindKeyboardInput?.();
+      gameAudio?.destroy();
 
       if (initialized) {
         app.destroy(true, { children: true });
       }
     };
-  }, []);
+  }, [onScoreChange]);
 
   return <div ref={containerRef} />;
 }

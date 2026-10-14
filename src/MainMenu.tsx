@@ -1,0 +1,57 @@
+import './MainMenu.css';
+import titleImageUrl from '../assets/png/default/ui/menu/title_pirate_battle.png';
+import pirateShipImageUrl from '../assets/png/default/ships/ship_14.png';
+
+interface MainMenuProps {
+  onPlay: () => void;
+}
+
+export function MainMenu({ onPlay }: MainMenuProps) {
+  return (
+    <main className="main-menu">
+      <section className="main-menu__panel">
+        <h1>
+          <img
+            src={titleImageUrl}
+            alt="Pirate Battle"
+            className="main-menu__title"
+          />
+        </h1>
+        <p>SET SAIL. TAKE COMMAND.</p>
+        <button
+          type="button"
+          className="main-menu__button main-menu__button--primary"
+          onClick={onPlay}
+        >
+          PLAY
+        </button>
+        <button
+          type="button"
+          className="main-menu__button main-menu__button--primary"
+        >
+          OPTIONS
+        </button>
+        <img
+          src={pirateShipImageUrl}
+          alt="Pirate Ship"
+          className="main-menu__ship"
+        />
+        <p>Navigate the islands. Survive the battle.</p>
+        <div className="main-menu__footer-actions">
+          <button
+            type="button"
+            className="main-menu__button main-menu__button--secondary"
+          >
+            RANKING
+          </button>
+          <button
+            type="button"
+            className="main-menu__button main-menu__button--secondary"
+          >
+            MATCH HISTORY
+          </button>
+        </div>
+      </section>
+    </main>
+  );
+}

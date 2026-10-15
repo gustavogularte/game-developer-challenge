@@ -1,29 +1,29 @@
-import frontShotUrl from "../../assets/sounds/cannon_fire_1.wav";
-import broadsideUrl from "../../assets/sounds/cannon_broadside.wav";
-import waterHitUrl from "../../assets/sounds/cannonball_water_hit_1.wav";
-import explosionUrl from "../../assets/sounds/ship_explosion_1.wav";
-import scoreUrl from "../../assets/sounds/score_point.wav";
-import lowHealthUrl from "../../assets/sounds/health_low.wav";
-import oceanUrl from "../../assets/sounds/ocean_ambience_loop.wav";
-import enemySinkingUrl from "../../assets/sounds/ship_sinking.wav";
+import frontShotUrl from '../../assets/sounds/cannon_fire_1.wav';
+import broadsideUrl from '../../assets/sounds/cannon_broadside.wav';
+import waterHitUrl from '../../assets/sounds/cannonball_water_hit_1.wav';
+import explosionUrl from '../../assets/sounds/ship_explosion_1.wav';
+import scoreUrl from '../../assets/sounds/score_point.wav';
+import lowHealthUrl from '../../assets/sounds/health_low.wav';
+import oceanUrl from '../../assets/sounds/ocean_ambience_loop.wav';
+import enemySinkingUrl from '../../assets/sounds/ship_sinking.wav';
 
 const extraSoundUrls = import.meta.glob<string>(
-  "../../assets/sounds/{game_*,ui_*}.wav",
-  { eager: true, query: "?url", import: "default" },
+  '../../assets/sounds/{game_*,ui_*}.wav',
+  { eager: true, query: '?url', import: 'default' },
 );
 function soundUrl(name: string): string {
   return extraSoundUrls[`../../assets/sounds/${name}.wav`];
 }
 const sounds = {
-  gameStart: { url: soundUrl("game_start"), volume: 0.35, loop: false },
-  gameOver: { url: soundUrl("game_over"), volume: 0.4, loop: false },
-  gameComplete: { url: soundUrl("game_complete"), volume: 0.4, loop: false },
-  gamePause: { url: soundUrl("game_pause"), volume: 0.25, loop: false },
-  gameResume: { url: soundUrl("game_resume"), volume: 0.3, loop: false },
-  uiClick: { url: soundUrl("ui_click"), volume: 0.2, loop: false },
-  uiClose: { url: soundUrl("ui_close"), volume: 0.2, loop: false },
-  uiOpen: { url: soundUrl("ui_open"), volume: 0.2, loop: false },
-  uiHover: { url: soundUrl("ui_hover"), volume: 0.08, loop: false },
+  gameStart: { url: soundUrl('game_start'), volume: 0.35, loop: false },
+  gameOver: { url: soundUrl('game_over'), volume: 0.4, loop: false },
+  gameComplete: { url: soundUrl('game_complete'), volume: 0.4, loop: false },
+  gamePause: { url: soundUrl('game_pause'), volume: 0.25, loop: false },
+  gameResume: { url: soundUrl('game_resume'), volume: 0.3, loop: false },
+  uiClick: { url: soundUrl('ui_click'), volume: 0.2, loop: false },
+  uiClose: { url: soundUrl('ui_close'), volume: 0.2, loop: false },
+  uiOpen: { url: soundUrl('ui_open'), volume: 0.2, loop: false },
+  uiHover: { url: soundUrl('ui_hover'), volume: 0.08, loop: false },
   frontShot: { url: frontShotUrl, volume: 0.2, loop: false },
   broadside: { url: broadsideUrl, volume: 0.2, loop: false },
   waterHit: { url: waterHitUrl, volume: 0.02, loop: false },

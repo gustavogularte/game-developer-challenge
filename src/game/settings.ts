@@ -11,9 +11,9 @@ export const defaultSettings: GameSettings = {
   durationSeconds: 120,
   spawnIntervalSeconds: 3,
 };
-export const settingsStorageKey = "pirate-battle:settings:v1";
+export const settingsStorageKey = 'pirate-battle:settings:v1';
 export function isGameSettings(value: unknown): value is GameSettings {
-  if (!value || typeof value !== "object") return false;
+  if (!value || typeof value !== 'object') return false;
   const candidate = value as Partial<GameSettings>;
   return (
     settingsConfig.durations.includes(candidate.durationSeconds ?? 0) &&
@@ -26,7 +26,7 @@ export function isGameSettings(value: unknown): value is GameSettings {
 export function loadSettings(): GameSettings {
   try {
     const value: unknown = JSON.parse(
-      localStorage.getItem(settingsStorageKey) ?? "null",
+      localStorage.getItem(settingsStorageKey) ?? 'null',
     );
     if (isGameSettings(value)) return value;
   } catch {

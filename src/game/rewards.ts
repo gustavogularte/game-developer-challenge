@@ -1,4 +1,4 @@
-import type { PlayerState } from "./player";
+import type { PlayerState } from './player';
 export const rewardConfig = {
   boostDurationSeconds: 5,
   projectileSpeedMultiplier: 1.5,

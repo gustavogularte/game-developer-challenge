@@ -5,9 +5,9 @@ import {
   enemyConfig,
   shooterConfig,
   type EnemyState,
-} from "./enemy";
-import type { ArenaBounds, PlayerState } from "./player";
-import { isCirclePathBlocked, type IslandCollider } from "./islandGeometry";
+} from './enemy';
+import type { ArenaBounds, PlayerState } from './player';
+import { isCirclePathBlocked, type IslandCollider } from './islandGeometry';
 
 interface SpawnState {
   elapsedSeconds: number;
@@ -142,12 +142,12 @@ export function updateEnemySpawning(
 }
 
 function chooseShooterVariant(roll: number) {
-  if (roll < spawnConfig.standardShooterProbability) return "standard";
+  if (roll < spawnConfig.standardShooterProbability) return 'standard';
   if (
     roll <
     spawnConfig.standardShooterProbability +
       spawnConfig.healerShooterProbability
   )
-    return "healer";
-  return "speed";
+    return 'healer';
+  return 'speed';
 }

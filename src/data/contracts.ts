@@ -1,7 +1,7 @@
-import type { GameSettings } from "../game/settings";
-import type { MatchResult } from "../game/match";
-export const currentPlayer = { id: "local-captain", name: "Captain Jack" };
-export const rulesVersion = "pirate-battle-v2";
+import type { GameSettings } from '../game/settings';
+import type { MatchResult } from '../game/match';
+export const currentPlayer = { id: 'local-captain', name: 'Captain Jack' };
+export const rulesVersion = 'pirate-battle-v2';
 export interface MatchRecord extends MatchResult {
   id: string;
   playerId: string;

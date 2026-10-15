@@ -1,8 +1,8 @@
-import * as React from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { registerMatch } from "./api";
-import { acknowledgeMatch, getPending, queueMatch } from "./storage";
-import type { MatchRecord } from "./contracts";
+import * as React from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { registerMatch } from './api';
+import { acknowledgeMatch, getPending, queueMatch } from './storage';
+import type { MatchRecord } from './contracts';
 
 interface SyncContextValue {
   pending: MatchRecord[];
@@ -14,7 +14,7 @@ interface SyncContextValue {
 const SyncContext = React.createContext<SyncContextValue | null>(null);
 export function useMatchSync() {
   const context = React.useContext(SyncContext);
-  if (!context) throw new Error("MatchSyncProvider is missing");
+  if (!context) throw new Error('MatchSyncProvider is missing');
   return context;
 }
 export function MatchSyncProvider({ children }: { children: React.ReactNode }) {
@@ -59,7 +59,7 @@ export function MatchSyncProvider({ children }: { children: React.ReactNode }) {
             confirmedAny = true;
           } catch {
             setError(
-              "Could not sync some battles. Check your connection or the Network demo scenario and try again.",
+              'Could not sync some battles. Check your connection or the Network demo scenario and try again.',
             );
           }
           setPending([
@@ -72,19 +72,19 @@ export function MatchSyncProvider({ children }: { children: React.ReactNode }) {
           ]);
         }
       } catch {
-        setError("Could not read saved battles. Please try syncing again.");
+        setError('Could not read saved battles. Please try syncing again.');
       } finally {
         running.current = false;
         setSyncing(false);
         if (confirmedAny)
-          void queryClient.invalidateQueries({ queryKey: ["matches"] });
+          void queryClient.invalidateQueries({ queryKey: ['matches'] });
       }
     })();
   }, [mutateAsync, queryClient]);
   React.useEffect(() => {
     retry();
-    window.addEventListener("online", retry);
-    return () => window.removeEventListener("online", retry);
+    window.addEventListener('online', retry);
+    return () => window.removeEventListener('online', retry);
   }, [retry]);
   const submit = React.useCallback(
     (record: MatchRecord) => {
@@ -93,7 +93,7 @@ export function MatchSyncProvider({ children }: { children: React.ReactNode }) {
       } catch {
         transient.current.set(record.id, record);
         setError(
-          "Browser storage unavailable. Keep this tab open until the battle is synced.",
+          'Browser storage unavailable. Keep this tab open until the battle is synced.',
         );
       }
       setPending([
@@ -122,10 +122,10 @@ export function RegistrationStatus({ id }: { id: string }) {
   return (
     <p className="registration-status" role="status">
       {!pending
-        ? "Battle saved"
+        ? 'Battle saved'
         : sync.syncing
-          ? "Saving battle…"
-          : "Saved locally · sync available in Match History"}
+          ? 'Saving battle…'
+          : 'Saved locally · sync available in Match History'}
     </p>
   );
 }

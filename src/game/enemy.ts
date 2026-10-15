@@ -1,7 +1,7 @@
-import { getNavigationTarget } from "./navigation";
-import { applyDamage, type HealthState } from "./health";
-import type { PlayerState } from "./player";
-import { isCirclePathBlocked, type IslandCollider } from "./islandGeometry";
+import { getNavigationTarget } from './navigation';
+import { applyDamage, type HealthState } from './health';
+import type { PlayerState } from './player';
+import { isCirclePathBlocked, type IslandCollider } from './islandGeometry';
 
 interface BaseEnemyState extends HealthState {
   x: number;
@@ -12,14 +12,14 @@ interface BaseEnemyState extends HealthState {
 }
 
 export interface ChaserState extends BaseEnemyState {
-  kind: "chaser";
+  kind: 'chaser';
 }
 
-export type ShooterVariant = "standard" | "healer" | "speed";
+export type ShooterVariant = 'standard' | 'healer' | 'speed';
 
 export interface ShooterState extends BaseEnemyState {
   variant: ShooterVariant;
-  kind: "shooter";
+  kind: 'shooter';
   shotCooldownSeconds: number;
 }
 
@@ -56,7 +56,7 @@ export const shooterConfig = {
 
 export function createChaser(x: number, y: number): ChaserState {
   return {
-    kind: "chaser",
+    kind: 'chaser',
     x,
     y,
     rotation: Math.PI,
@@ -70,10 +70,10 @@ export function createChaser(x: number, y: number): ChaserState {
 export function createShooter(
   x: number,
   y: number,
-  variant: ShooterVariant = "standard",
+  variant: ShooterVariant = 'standard',
 ): ShooterState {
   return {
-    kind: "shooter",
+    kind: 'shooter',
     variant,
     x,
     y,

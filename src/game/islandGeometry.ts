@@ -1,4 +1,4 @@
-import type { IslandDefinition, IslandPoint } from "./islands";
+import type { IslandDefinition, IslandPoint } from './islands';
 
 export interface IslandCollider {
   points: IslandPoint[];

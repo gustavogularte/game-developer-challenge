@@ -33,7 +33,7 @@ function points(coordinates: [number, number][]): IslandPoint[] {
 export function createIslands(): IslandDefinition[] {
   return [
     {
-      id: "forest-fort-island",
+      id: 'forest-fort-island',
       x: 224,
       y: 192,
       cornerRadius: islandConfig.mainCornerRadius,
@@ -86,7 +86,7 @@ export function createIslands(): IslandDefinition[] {
     },
 
     {
-      id: "rocky-cove-island",
+      id: 'rocky-cove-island',
       x: 1552,
       y: 700,
       cornerRadius: islandConfig.mainCornerRadius,
@@ -136,7 +136,7 @@ export function createIslands(): IslandDefinition[] {
     },
 
     {
-      id: "palm-islet",
+      id: 'palm-islet',
       x: 320,
       y: 960,
       cornerRadius: islandConfig.smallCornerRadius,
@@ -162,7 +162,7 @@ export function createIslands(): IslandDefinition[] {
     },
 
     {
-      id: "rock-islet",
+      id: 'rock-islet',
       x: 640,
       y: 992,
       cornerRadius: islandConfig.smallCornerRadius,

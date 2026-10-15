@@ -1,15 +1,15 @@
-import { createPlayerInput, type PlayerInput } from "./input";
+import { createPlayerInput, type PlayerInput } from './input';
 
 const keyBindings: Partial<Record<string, keyof PlayerInput>> = {
-  KeyW: "moveForward",
-  ArrowUp: "moveForward",
-  KeyA: "turnLeft",
-  ArrowLeft: "turnLeft",
-  KeyD: "turnRight",
-  ArrowRight: "turnRight",
-  Space: "fireFront",
-  KeyQ: "fireLeft",
-  KeyE: "fireRight",
+  KeyW: 'moveForward',
+  ArrowUp: 'moveForward',
+  KeyA: 'turnLeft',
+  ArrowLeft: 'turnLeft',
+  KeyD: 'turnRight',
+  ArrowRight: 'turnRight',
+  Space: 'fireFront',
+  KeyQ: 'fireLeft',
+  KeyE: 'fireRight',
 };
 
 export function bindKeyboardInput(input: PlayerInput): () => void {
@@ -55,16 +55,16 @@ export function bindKeyboardInput(input: PlayerInput): () => void {
     }
   }
 
-  window.addEventListener("keydown", handleKeyDown);
-  window.addEventListener("keyup", handleKeyUp);
-  window.addEventListener("blur", resetInput);
-  document.addEventListener("visibilitychange", handleVisibilityChange);
+  window.addEventListener('keydown', handleKeyDown);
+  window.addEventListener('keyup', handleKeyUp);
+  window.addEventListener('blur', resetInput);
+  document.addEventListener('visibilitychange', handleVisibilityChange);
 
   return function unbindKeyboardInput() {
-    window.removeEventListener("keydown", handleKeyDown);
-    window.removeEventListener("keyup", handleKeyUp);
-    window.removeEventListener("blur", resetInput);
-    document.removeEventListener("visibilitychange", handleVisibilityChange);
+    window.removeEventListener('keydown', handleKeyDown);
+    window.removeEventListener('keyup', handleKeyUp);
+    window.removeEventListener('blur', resetInput);
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
 
     resetInput();
   };

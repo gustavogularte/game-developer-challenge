@@ -1,21 +1,21 @@
-import * as React from "react";
-import type { GameControls } from "./GameCanvas";
-import type { PlayerInput } from "./game/input";
+import * as React from 'react';
+import type { GameControls } from './GameCanvas';
+import type { PlayerInput } from './game/input';
 const controlsList: {
   action: keyof PlayerInput;
   label: string;
   icon: string;
 }[] = [
-  { action: "turnLeft", label: "Turn left", icon: "turn_left" },
-  { action: "moveForward", label: "Move forward", icon: "forward" },
-  { action: "turnRight", label: "Turn right", icon: "turn_right" },
-  { action: "fireLeft", label: "Fire left", icon: "fire_left" },
-  { action: "fireFront", label: "Fire front", icon: "fire_front" },
-  { action: "fireRight", label: "Fire right", icon: "fire_right" },
+  { action: 'turnLeft', label: 'Turn left', icon: 'turn_left' },
+  { action: 'moveForward', label: 'Move forward', icon: 'forward' },
+  { action: 'turnRight', label: 'Turn right', icon: 'turn_right' },
+  { action: 'fireLeft', label: 'Fire left', icon: 'fire_left' },
+  { action: 'fireFront', label: 'Fire front', icon: 'fire_front' },
+  { action: 'fireRight', label: 'Fire right', icon: 'fire_right' },
 ];
 const icons = import.meta.glob<string>(
-  "../assets/png/default/ui/controls/icon_*.png",
-  { eager: true, query: "?url", import: "default" },
+  '../assets/png/default/ui/controls/icon_*.png',
+  { eager: true, query: '?url', import: 'default' },
 );
 export function TouchControls({
   controls,

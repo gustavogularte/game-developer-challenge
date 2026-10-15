@@ -1,10 +1,10 @@
-import * as PIXI from "pixi.js";
-import type { HealthState } from "./health";
+import * as PIXI from 'pixi.js';
+import type { HealthState } from './health';
 
-import frameImageUrl from "../../assets/png/default/ui/hud/health_frame.png";
-import greenImageUrl from "../../assets/png/default/ui/hud/health_fill_green.png";
-import amberImageUrl from "../../assets/png/default/ui/hud/health_fill_amber.png";
-import redImageUrl from "../../assets/png/default/ui/hud/health_fill_red.png";
+import frameImageUrl from '../../assets/png/default/ui/hud/health_frame.png';
+import greenImageUrl from '../../assets/png/default/ui/hud/health_fill_green.png';
+import amberImageUrl from '../../assets/png/default/ui/hud/health_fill_amber.png';
+import redImageUrl from '../../assets/png/default/ui/hud/health_fill_red.png';
 
 interface HealthBarView {
   container: PIXI.Container;
@@ -29,7 +29,7 @@ export async function createHealthBar(): Promise<HealthBarView> {
     ]);
 
   const container = new PIXI.Container();
-  container.eventMode = "none";
+  container.eventMode = 'none';
 
   const frame = new PIXI.Sprite(frameTexture);
   const fill = new PIXI.Sprite(greenTexture);

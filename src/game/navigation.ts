@@ -1,5 +1,5 @@
-import { arenaConfig } from "./arena";
-import { isCirclePathBlocked, type IslandCollider } from "./islandGeometry";
+import { arenaConfig } from './arena';
+import { isCirclePathBlocked, type IslandCollider } from './islandGeometry';
 
 interface Point {
   x: number;

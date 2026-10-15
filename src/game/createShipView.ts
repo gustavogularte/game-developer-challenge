@@ -1,9 +1,9 @@
-import * as PIXI from "pixi.js";
-import { getHealthStage } from "./health";
-import type { HealthStage, HealthState } from "./health";
+import * as PIXI from 'pixi.js';
+import { getHealthStage } from './health';
+import type { HealthStage, HealthState } from './health';
 
-import fireOneImageUrl from "../../assets/png/default/effects/fire_1.png";
-import fireTwoImageUrl from "../../assets/png/default/effects/fire_2.png";
+import fireOneImageUrl from '../../assets/png/default/effects/fire_1.png';
+import fireTwoImageUrl from '../../assets/png/default/effects/fire_2.png';
 
 type ShipImages = Record<HealthStage, string>;
 
@@ -52,8 +52,8 @@ export async function createShipView(images: ShipImages) {
 
     sprite.texture = textures[stage];
 
-    fireOne.visible = stage === "red";
-    fireTwo.visible = stage === "amber" || stage === "red";
+    fireOne.visible = stage === 'red';
+    fireTwo.visible = stage === 'amber' || stage === 'red';
 
     fireOne.scale.set(1 + Math.sin(elapsedSeconds * 13) * 0.08);
 

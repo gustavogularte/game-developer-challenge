@@ -1,11 +1,11 @@
-import * as React from "react";
+import * as React from 'react';
 import {
   settingsConfig,
   saveSettings,
   type GameSettings,
-} from "./game/settings";
-import plusUrl from "../assets/png/default/ui/controls/icon_plus.png";
-import minusUrl from "../assets/png/default/ui/controls/icon_minus.png";
+} from './game/settings';
+import plusUrl from '../assets/png/default/ui/controls/icon_plus.png';
+import minusUrl from '../assets/png/default/ui/controls/icon_minus.png';
 interface Props {
   settings: GameSettings;
   onChange: (settings: GameSettings) => void;
@@ -28,7 +28,7 @@ export function OptionsPanel({
   );
   const rows = [
     {
-      label: "Game session time",
+      label: 'Game session time',
       value: settings.durationSeconds,
       minimum: durationIndex === 0,
       maximum: durationIndex === settingsConfig.durations.length - 1,
@@ -39,7 +39,7 @@ export function OptionsPanel({
         }),
     },
     {
-      label: "Enemy spawn time",
+      label: 'Enemy spawn time',
       value: settings.spawnIntervalSeconds,
       minimum:
         settings.spawnIntervalSeconds === settingsConfig.minimumSpawnSeconds,
@@ -81,14 +81,14 @@ export function OptionsPanel({
       ))}
       <p className="subtle">
         {inGame
-          ? "Changes apply to your next battle."
-          : "Settings are saved automatically."}
+          ? 'Changes apply to your next battle.'
+          : 'Settings are saved automatically.'}
       </p>
       {storageError && (
         <p role="alert">Could not save settings in this browser.</p>
       )}
       <button className="gold-button" data-ui-sound="uiClose" onClick={onBack}>
-        {inGame ? "BACK TO PAUSE" : "MAIN MENU"}
+        {inGame ? 'BACK TO PAUSE' : 'MAIN MENU'}
       </button>
     </section>
   );

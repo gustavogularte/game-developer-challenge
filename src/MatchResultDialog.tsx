@@ -1,6 +1,6 @@
-import * as React from "react";
-import type { MatchResult } from "./game/match";
-import "./MatchResultDialog.css";
+import * as React from 'react';
+import type { MatchResult } from './game/match';
+import './MatchResultDialog.css';
 
 interface MatchResultDialogProps {
   result: MatchResult;
@@ -43,11 +43,11 @@ export function MatchResultDialog({
   const seconds = playedSeconds % secondsPerMinute;
 
   const formattedTime =
-    `${String(minutes).padStart(2, "0")}:` + String(seconds).padStart(2, "0");
+    `${String(minutes).padStart(2, '0')}:` + String(seconds).padStart(2, '0');
 
-  const title = result.reason === "timeUp" ? "BATTLE COMPLETE" : "GAME OVER";
+  const title = result.reason === 'timeUp' ? 'BATTLE COMPLETE' : 'GAME OVER';
 
-  const reasonLabel = result.reason === "timeUp" ? "TIME UP" : "SHIP DESTROYED";
+  const reasonLabel = result.reason === 'timeUp' ? 'TIME UP' : 'SHIP DESTROYED';
 
   return (
     <dialog

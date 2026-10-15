@@ -1,4 +1,4 @@
-export type MatchEndReason = "timeUp" | "playerDefeated";
+export type MatchEndReason = 'timeUp' | 'playerDefeated';
 
 export interface MatchResult {
   score: number;
@@ -7,7 +7,7 @@ export interface MatchResult {
 }
 
 export interface MatchState {
-  status: "playing" | "finished";
+  status: 'playing' | 'finished';
   durationSeconds: number;
   elapsedSeconds: number;
   result: MatchResult | null;
@@ -27,11 +27,11 @@ export function createMatchState(
     durationSeconds < matchConfig.minimumDurationSeconds ||
     durationSeconds > matchConfig.maximumDurationSeconds
   ) {
-    throw new RangeError("Match duration must be between 60 and 180 seconds.");
+    throw new RangeError('Match duration must be between 60 and 180 seconds.');
   }
 
   return {
-    status: "playing",
+    status: 'playing',
     durationSeconds,
     elapsedSeconds: 0,
     result: null,
@@ -48,7 +48,7 @@ export function advanceMatch(
   playerHealth: number,
   score: number,
 ): void {
-  if (match.status !== "playing") return;
+  if (match.status !== 'playing') return;
 
   match.elapsedSeconds = Math.min(
     match.durationSeconds,
@@ -60,11 +60,11 @@ export function advanceMatch(
 
   if (!playerDefeated && !timeExpired) return;
 
-  match.status = "finished";
+  match.status = 'finished';
 
   match.result = {
     score,
     playedSeconds: match.elapsedSeconds,
-    reason: playerDefeated ? "playerDefeated" : "timeUp",
+    reason: playerDefeated ? 'playerDefeated' : 'timeUp',
   };
 }

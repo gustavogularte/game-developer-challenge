@@ -1,6 +1,6 @@
-import * as React from "react";
-import { OptionsPanel } from "./OptionsPanel";
-import type { GameSettings } from "./game/settings";
+import * as React from 'react';
+import { OptionsPanel } from './OptionsPanel';
+import type { GameSettings } from './game/settings';
 interface Props {
   onResume: () => void;
   onMainMenu: () => void;
@@ -26,7 +26,7 @@ export function PauseDialog({
     <dialog
       ref={dialogRef}
       className="pirate-dialog"
-      aria-label={options ? "Options" : "Pause"}
+      aria-label={options ? 'Options' : 'Pause'}
       onCancel={(event) => event.preventDefault()}
     >
       {options ? (

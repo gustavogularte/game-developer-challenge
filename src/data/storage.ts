@@ -1,13 +1,13 @@
-import type { MatchRecord } from "./contracts";
+import type { MatchRecord } from './contracts';
 export const storageKeys = {
-  pending: "pirate-battle:pending:v2",
-  confirmed: "pirate-battle:confirmed:v2",
-  lastResult: "pirate-battle:last-result:v2",
-  scenario: "pirate-battle:scenario:v2",
+  pending: 'pirate-battle:pending:v2',
+  confirmed: 'pirate-battle:confirmed:v2',
+  lastResult: 'pirate-battle:last-result:v2',
+  scenario: 'pirate-battle:scenario:v2',
 };
 export function readStored<T>(key: string, fallback: T): T {
   try {
-    return (JSON.parse(localStorage.getItem(key) ?? "null") as T) ?? fallback;
+    return (JSON.parse(localStorage.getItem(key) ?? 'null') as T) ?? fallback;
   } catch {
     return fallback;
   }

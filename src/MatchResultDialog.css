@@ -22,7 +22,7 @@
   padding: 48px 32px;
   text-align: center;
 
-  background-image: url("../assets/png/default/ui/menu/panel_menu.png");
+  background-image: url('../assets/png/default/ui/menu/panel_menu.png');
   background-position: center;
   background-size: 100% 100%;
   background-repeat: no-repeat;
@@ -63,7 +63,7 @@
   padding: 0 20px;
 
   background-color: transparent;
-  background-image: url("../assets/png/default/ui/menu/button_primary_normal.png");
+  background-image: url('../assets/png/default/ui/menu/button_primary_normal.png');
   background-position: center;
   background-size: 100% 100%;
   background-repeat: no-repeat;
@@ -75,11 +75,11 @@
 }
 
 .match-result__button:hover {
-  background-image: url("../assets/png/default/ui/menu/button_primary_hover.png");
+  background-image: url('../assets/png/default/ui/menu/button_primary_hover.png');
 }
 
 .match-result__button:active {
-  background-image: url("../assets/png/default/ui/menu/button_primary_pressed.png");
+  background-image: url('../assets/png/default/ui/menu/button_primary_pressed.png');
 }
 
 .match-result__button:focus-visible {

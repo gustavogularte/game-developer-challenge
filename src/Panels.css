@@ -3,12 +3,12 @@
   padding: 24px;
   display: grid;
   place-items: center;
-  background: url("../assets/ui_scene_background.png") center/cover fixed;
+  background: url('../assets/ui_scene_background.png') center/cover fixed;
   color: #fff0cc;
 }
 .framed-panel,
 .pirate-dialog {
-  background: url("../assets/png/default/ui/menu/panel_menu.png") center/100%
+  background: url('../assets/png/default/ui/menu/panel_menu.png') center/100%
     100% no-repeat;
   color: #fff0cc;
   text-align: center;
@@ -60,7 +60,7 @@
   padding: 14px 24px;
   border: 0;
   background: transparent
-    url("../assets/png/default/ui/menu/button_primary_normal.png") center/100%
+    url('../assets/png/default/ui/menu/button_primary_normal.png') center/100%
     100% no-repeat;
   color: #38240b;
   font-weight: 700;
@@ -68,20 +68,20 @@
   cursor: pointer;
 }
 .gold-button:hover:not(:disabled) {
-  background-image: url("../assets/png/default/ui/menu/button_primary_hover.png");
+  background-image: url('../assets/png/default/ui/menu/button_primary_hover.png');
 }
 .gold-button:active:not(:disabled) {
-  background-image: url("../assets/png/default/ui/menu/button_primary_pressed.png");
+  background-image: url('../assets/png/default/ui/menu/button_primary_pressed.png');
 }
 .gold-button:disabled {
-  background-image: url("../assets/png/default/ui/menu/button_primary_disabled.png");
+  background-image: url('../assets/png/default/ui/menu/button_primary_disabled.png');
 }
 .secondary-button {
-  background-image: url("../assets/png/default/ui/menu/button_secondary_normal.png");
+  background-image: url('../assets/png/default/ui/menu/button_secondary_normal.png');
   color: #fff0cc;
 }
 .secondary-button:active {
-  background-image: url("../assets/png/default/ui/menu/button_secondary_pressed.png");
+  background-image: url('../assets/png/default/ui/menu/button_secondary_pressed.png');
 }
 .round-button {
   width: 48px;
@@ -95,7 +95,7 @@
   font-weight: 700;
   font-size: 26px;
   background: transparent
-    url("../assets/png/default/ui/controls/button_round_normal.png")
+    url('../assets/png/default/ui/controls/button_round_normal.png')
     center/contain no-repeat;
 }
 .round-button img {
@@ -104,10 +104,10 @@
   object-fit: contain;
 }
 .round-button:hover:not(:disabled) {
-  background-image: url("../assets/png/default/ui/controls/button_round_hover.png");
+  background-image: url('../assets/png/default/ui/controls/button_round_hover.png');
 }
 .round-button:active:not(:disabled) {
-  background-image: url("../assets/png/default/ui/controls/button_round_pressed.png");
+  background-image: url('../assets/png/default/ui/controls/button_round_pressed.png');
 }
 button:disabled {
   opacity: 0.5;
@@ -119,8 +119,8 @@ summary:focus-visible {
   outline: 3px solid #ffe49b;
   outline-offset: 4px;
 }
-h1[tabindex="-1"],
-h2[tabindex="-1"] {
+h1[tabindex='-1'],
+h2[tabindex='-1'] {
   outline: none;
 }
 .pirate-dialog {
@@ -341,23 +341,68 @@ select {
 }
 
 @media (max-height: 600px) and (min-width: 600px) {
-  .pirate-dialog { width: 480px; padding: 24px 28px; }
-  .pause-content { gap: 6px; }
-  .pause-content h1 { font-size: 26px; margin-bottom: 0; }
-  .pause-content p { margin: 4px 0 8px; }
-  .pause-content .gold-button { width: 200px; min-height: 54px; }
-  .options-panel { padding: 24px 40px; }
-  .options-content { gap: 6px; }
-  .options-content h1 { margin: 0; font-size: 26px; }
-  .option { margin: 4px 0; }
-  .option h2 { margin: 0 0 4px; font-size: 14px; }
-  .option__controls { gap: 16px; }
-  .options-content .subtle { margin: 4px 0; }
-  .options-content .gold-button { width: 200px; min-height: 54px; }
-  .match-result__panel { padding: 24px; }
-  .match-result__score { font-size: 36px; margin-top: 6px; }
-  .match-result__details { margin: 8px 0; }
-  .match-result__button { width: 180px; }
-  .match-result__actions { gap: 2px; }
-  .registration-status { margin: 4px 0; }
+  .pirate-dialog {
+    width: 480px;
+    padding: 24px 28px;
+  }
+  .pause-content {
+    gap: 6px;
+  }
+  .pause-content h1 {
+    font-size: 26px;
+    margin-bottom: 0;
+  }
+  .pause-content p {
+    margin: 4px 0 8px;
+  }
+  .pause-content .gold-button {
+    width: 200px;
+    min-height: 54px;
+  }
+  .options-panel {
+    padding: 24px 40px;
+  }
+  .options-content {
+    gap: 6px;
+  }
+  .options-content h1 {
+    margin: 0;
+    font-size: 26px;
+  }
+  .option {
+    margin: 4px 0;
+  }
+  .option h2 {
+    margin: 0 0 4px;
+    font-size: 14px;
+  }
+  .option__controls {
+    gap: 16px;
+  }
+  .options-content .subtle {
+    margin: 4px 0;
+  }
+  .options-content .gold-button {
+    width: 200px;
+    min-height: 54px;
+  }
+  .match-result__panel {
+    padding: 24px;
+  }
+  .match-result__score {
+    font-size: 36px;
+    margin-top: 6px;
+  }
+  .match-result__details {
+    margin: 8px 0;
+  }
+  .match-result__button {
+    width: 180px;
+  }
+  .match-result__actions {
+    gap: 2px;
+  }
+  .registration-status {
+    margin: 4px 0;
+  }
 }

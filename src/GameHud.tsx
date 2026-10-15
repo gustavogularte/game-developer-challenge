@@ -1,11 +1,11 @@
-import "./GameHud.css";
-import pauseIconUrl from "../assets/png/default/ui/controls/icon_pause.png";
-import scoreIconUrl from "../assets/png/default/ui/hud/icon_score.png";
-import timeIconUrl from "../assets/png/default/ui/hud/icon_time.png";
-import heartIconUrl from "../assets/png/default/ui/hud/icon_heart.png";
-import healthFillGreenUrl from "../assets/png/default/ui/hud/health_fill_green.png";
-import healthFillAmberUrl from "../assets/png/default/ui/hud/health_fill_amber.png";
-import healthFillRedUrl from "../assets/png/default/ui/hud/health_fill_red.png";
+import './GameHud.css';
+import pauseIconUrl from '../assets/png/default/ui/controls/icon_pause.png';
+import scoreIconUrl from '../assets/png/default/ui/hud/icon_score.png';
+import timeIconUrl from '../assets/png/default/ui/hud/icon_time.png';
+import heartIconUrl from '../assets/png/default/ui/hud/icon_heart.png';
+import healthFillGreenUrl from '../assets/png/default/ui/hud/health_fill_green.png';
+import healthFillAmberUrl from '../assets/png/default/ui/hud/health_fill_amber.png';
+import healthFillRedUrl from '../assets/png/default/ui/hud/health_fill_red.png';
 
 interface GameHudProps {
   onPause: () => void;
@@ -40,7 +40,7 @@ export function GameHud({
     healthFillImageUrl = healthFillAmberUrl;
   }
 
-  const formattedTime = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  const formattedTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
   return (
     <div className="game-hud">

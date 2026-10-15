@@ -1,13 +1,13 @@
-import * as PIXI from "pixi.js";
-import { islandConfig, type IslandDefinition } from "./islands";
-import { createRoundedOutline } from "./islandGeometry";
+import * as PIXI from 'pixi.js';
+import { islandConfig, type IslandDefinition } from './islands';
+import { createRoundedOutline } from './islandGeometry';
 
 const tileImageUrls = import.meta.glob<string>(
-  "../../assets/png/default/tiles/*.png",
+  '../../assets/png/default/tiles/*.png',
   {
     eager: true,
-    query: "?url",
-    import: "default",
+    query: '?url',
+    import: 'default',
   },
 );
 
@@ -76,7 +76,7 @@ export async function createIslandLayer(
         .poly(createRoundedOutline(island.outline, island.cornerRadius))
         .fill({
           texture: getTexture(islandConfig.sandTextureId),
-          textureSpace: "global",
+          textureSpace: 'global',
         })
         .stroke({
           color: islandAppearance.sandEdgeColor,
@@ -91,7 +91,7 @@ export async function createIslandLayer(
           .poly(createRoundedOutline(island.grassOutline, island.cornerRadius))
           .fill({
             texture: getTexture(islandConfig.grassTextureId),
-            textureSpace: "global",
+            textureSpace: 'global',
           })
           .stroke({
             color: islandAppearance.grassEdgeColor,

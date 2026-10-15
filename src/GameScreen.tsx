@@ -1,17 +1,17 @@
-import * as React from "react";
-import { GameCanvas, type GameControls } from "./GameCanvas";
-import { GameHud } from "./GameHud";
-import { MatchResultDialog } from "./MatchResultDialog";
-import { TouchControls } from "./TouchControls";
-import { PauseDialog } from "./PauseDialog";
-import type { MatchResult } from "./game/match";
-import type { GameSettings } from "./game/settings";
+import * as React from 'react';
+import { GameCanvas, type GameControls } from './GameCanvas';
+import { GameHud } from './GameHud';
+import { MatchResultDialog } from './MatchResultDialog';
+import { TouchControls } from './TouchControls';
+import { PauseDialog } from './PauseDialog';
+import type { MatchResult } from './game/match';
+import type { GameSettings } from './game/settings';
 import {
   currentPlayer,
   rulesVersion,
   type MatchRecord,
-} from "./data/contracts";
-import { RegistrationStatus, useMatchSync } from "./data/MatchSync";
+} from './data/contracts';
+import { RegistrationStatus, useMatchSync } from './data/MatchSync';
 interface Props {
   onMainMenu: () => void;
   settings: GameSettings;

@@ -1,4 +1,4 @@
 export const arenaConfig = {
-  width: 2400,
-  height: 1350,
+  width: 4800,
+  height: 2700,
 };

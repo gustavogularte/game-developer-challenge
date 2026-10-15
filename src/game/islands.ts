@@ -34,10 +34,10 @@ function points(coordinates: [number, number][]): IslandPoint[] {
 }
 
 // Fixed art direction keeps the navigation map stable and the waterways open.
-export function createIslands(): IslandDefinition[] {
+function createOriginalIslands(): IslandDefinition[] {
   return [
     {
-      id: 'forest-fort-island',
+      id: "forest-fort-island",
       x: 224,
       y: 192,
       cornerRadius: islandConfig.mainCornerRadius,
@@ -113,7 +113,7 @@ export function createIslands(): IslandDefinition[] {
       ],
     },
     {
-      id: 'rocky-cove-island',
+      id: "rocky-cove-island",
       x: 1552,
       y: 700,
       cornerRadius: islandConfig.mainCornerRadius,
@@ -183,7 +183,7 @@ export function createIslands(): IslandDefinition[] {
       ],
     },
     {
-      id: 'palm-islet',
+      id: "palm-islet",
       x: 320,
       y: 960,
       cornerRadius: islandConfig.smallCornerRadius,
@@ -217,7 +217,7 @@ export function createIslands(): IslandDefinition[] {
       ],
     },
     {
-      id: 'rock-islet',
+      id: "rock-islet",
       x: 640,
       y: 992,
       cornerRadius: islandConfig.smallCornerRadius,
@@ -241,5 +241,44 @@ export function createIslands(): IslandDefinition[] {
         { tileId: 49, x: 48, y: 96, scale: 0.55 },
       ],
     },
+  ];
+}
+
+// Hand-shaped coastlines keep bays and channels readable instead of scattering tiles.
+function createCoastalIsland(
+  id: string, x: number, y: number,
+  coast: [number, number][], grass: [number, number][],
+  decorations: IslandDecoration[],
+): IslandDefinition {
+  return { id, x, y, cornerRadius: islandConfig.mainCornerRadius,
+    outline: points(coast), grassOutline: points(grass), decorations };
+}
+
+export function createIslands(): IslandDefinition[] {
+  return [
+    ...createOriginalIslands(),
+    createCoastalIsland("crescent-bay", 1160, 180,
+      [[0,160],[45,75],[150,20],[270,0],[390,40],[435,115],[390,166],[315,115],[225,88],[147,126],[133,212],[175,285],[110,330],[40,265]],
+      [[38,157],[78,99],[157,55],[270,35],[361,66],[382,105],[311,83],[219,54],[119,100],[94,209],[129,277],[107,282],[69,247]],
+      [{tileId:71,x:172,y:65},{tileId:72,x:90,y:160},{tileId:70,x:89,y:233,scale:0.85},{tileId:88,x:267,y:55},{tileId:65,x:347,y:90,scale:0.7}]),
+    createCoastalIsland("eastern-watch", 3360, 410,
+      [[0,152],[48,78],[138,61],[194,0],[282,14],[333,81],[417,111],[449,200],[398,260],[316,240],[271,302],[179,325],[125,275],[42,250]],
+      [[43,151],[79,112],[163,99],[211,39],[263,49],[305,113],[381,144],[405,194],[374,219],[302,202],[245,268],[182,282],[145,236],[74,214]],
+      [{tileId:50,x:229,y:100},{tileId:67,x:281,y:141},{tileId:71,x:132,y:174},{tileId:72,x:180,y:235},{tileId:87,x:335,y:181},{tileId:49,x:83,y:203,scale:0.7}]),
+    createCoastalIsland("southern-palm-shore", 2690, 2010,
+      [[0,122],[66,49],[157,28],[217,0],[294,33],[324,110],[393,153],[418,239],[360,292],[275,271],[222,319],[140,298],[97,227],[29,209]],
+      [[42,125],[92,83],[163,69],[220,40],[267,66],[287,135],[351,176],[371,224],[345,250],[270,231],[208,276],[165,261],[126,199],[65,177]],
+      [{tileId:71,x:194,y:110},{tileId:72,x:249,y:160},{tileId:70,x:153,y:195},{tileId:88,x:313,y:215},{tileId:65,x:210,y:248,scale:0.7},{tileId:87,x:117,y:125}]),
+    createCoastalIsland("western-sandbar", 720, 1900,
+      [[0,100],[81,66],[150,12],[235,0],[299,36],[356,39],[397,84],[361,130],[272,121],[210,162],[129,180],[47,156]],
+      [[77,109],[157,62],[237,43],[285,70],[320,86],[262,84],[196,126],[130,141]],
+      [{tileId:70,x:181,y:99,scale:0.85},{tileId:72,x:241,y:76,scale:0.8},{tileId:49,x:90,y:131,scale:0.65}]),
+    createCoastalIsland("far-reef", 4160, 1740,
+      [[0,66],[48,12],[110,0],[171,37],[188,105],[135,149],[71,135],[24,111]], [],
+      [{tileId:50,x:88,y:63},{tileId:51,x:131,y:99,scale:0.8},{tileId:49,x:50,y:93,scale:0.7}]),
+    createCoastalIsland("lagoon-garden", 3640, 2180,
+      [[0,120],[46,42],[123,0],[202,25],[256,10],[324,55],[350,133],[309,204],[235,216],[182,174],[117,215],[42,190]],
+      [[38,119],[78,72],[125,40],[199,63],[256,47],[288,81],[308,132],[283,167],[240,178],[184,135],[113,176],[70,157]],
+      [{tileId:71,x:120,y:90},{tileId:72,x:255,y:103},{tileId:87,x:183,y:104},{tileId:88,x:100,y:147},{tileId:66,x:276,y:154,scale:0.8}]),
   ];
 }

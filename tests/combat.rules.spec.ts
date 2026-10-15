@@ -110,7 +110,7 @@ test('random shooter weights keep special rarer than healer and standard', () =>
     [0.9, 'speed'],
     [0.99, 'speed'],
   ] as const) {
-    const values = [0.01, 0.01, 0.9, roll];
+    const values = [0.2, 0.2, 0.9, roll];
     let index = 0;
     const enemies = updateEnemySpawning(
       createSpawnState(),

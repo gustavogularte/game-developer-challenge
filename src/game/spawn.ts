@@ -5,9 +5,9 @@ import {
   enemyConfig,
   shooterConfig,
   type EnemyState,
-} from './enemy';
-import type { ArenaBounds, PlayerState } from './player';
-import { isCirclePathBlocked, type IslandCollider } from './islandGeometry';
+} from "./enemy";
+import type { ArenaBounds, PlayerState } from "./player";
+import { isCirclePathBlocked, type IslandCollider } from "./islandGeometry";
 
 interface SpawnState {
   elapsedSeconds: number;
@@ -20,6 +20,7 @@ export const spawnConfig = {
   maxActiveEnemies: 8,
   arenaMargin: 96,
   minimumPlayerDistance: 500,
+  maximumPlayerDistance: 1100,
   minimumEnemyGap: 80,
   maxPositionAttempts: 20,
   chaserProbability: 0.5,
@@ -44,20 +45,25 @@ function findSpawnPosition(
   random: () => number,
 ): { x: number; y: number } | undefined {
   const margin = spawnConfig.arenaMargin;
-  const availableWidth = bounds.width - margin * 2;
-  const availableHeight = bounds.height - margin * 2;
+  const minX = Math.max(margin, player.x - spawnConfig.maximumPlayerDistance);
+  const minY = Math.max(margin, player.y - spawnConfig.maximumPlayerDistance);
+  const maxX = Math.min(bounds.width - margin, player.x + spawnConfig.maximumPlayerDistance);
+  const maxY = Math.min(bounds.height - margin, player.y + spawnConfig.maximumPlayerDistance);
+  const availableWidth = maxX - minX;
+  const availableHeight = maxY - minY;
 
   if (availableWidth <= 0 || availableHeight <= 0) {
     return undefined;
   }
 
   for (let attempt = 0; attempt < spawnConfig.maxPositionAttempts; attempt++) {
-    const x = margin + random() * availableWidth;
-    const y = margin + random() * availableHeight;
+    const x = minX + random() * availableWidth;
+    const y = minY + random() * availableHeight;
 
     const playerDistance = Math.hypot(x - player.x, y - player.y);
 
-    if (playerDistance < spawnConfig.minimumPlayerDistance) {
+    if (playerDistance < spawnConfig.minimumPlayerDistance ||
+        playerDistance > spawnConfig.maximumPlayerDistance) {
       continue;
     }
 
@@ -159,12 +165,12 @@ export function updateEnemySpawning(
 }
 
 function chooseShooterVariant(roll: number) {
-  if (roll < spawnConfig.standardShooterProbability) return 'standard';
+  if (roll < spawnConfig.standardShooterProbability) return "standard";
   if (
     roll <
     spawnConfig.standardShooterProbability +
       spawnConfig.healerShooterProbability
   )
-    return 'healer';
-  return 'speed';
+    return "healer";
+  return "speed";
 }

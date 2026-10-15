@@ -97,7 +97,7 @@ test('first spawn takes one second; later spawns use the selected interval', () 
   const state = createSpawnState(),
     player = playerAt();
   const update = (seconds: number) =>
-    updateEnemySpawning(state, player, [], seconds, bounds, [], () => 0.01, 10);
+    updateEnemySpawning(state, player, [], seconds, bounds, [], () => 0.2, 10);
   expect(update(0.5)).toHaveLength(0);
   expect(update(0.5)).toHaveLength(1);
   expect(update(9)).toHaveLength(0);
@@ -111,7 +111,7 @@ test('first spawn takes one second; later spawns use the selected interval', () 
       0.5,
       bounds,
       [],
-      () => 0.01,
+      () => 0.2,
       1,
     ),
   ).toHaveLength(0);
@@ -123,7 +123,7 @@ test('first spawn retries next frame if no safe position was found', () => {
     updateEnemySpawning(state, player, [], 1, bounds, [], () => 0.5, 10),
   ).toHaveLength(0);
   expect(
-    updateEnemySpawning(state, player, [], 0, bounds, [], () => 0.01, 10),
+    updateEnemySpawning(state, player, [], 0, bounds, [], () => 0.2, 10),
   ).toHaveLength(1);
 });
 test('spawn scheduling carries time across a long frame without changing the first delay', () => {

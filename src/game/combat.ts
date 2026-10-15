@@ -77,8 +77,8 @@ export const splashConfig = {
 };
 
 const weaponConfig = {
-  frontCooldownSeconds: 0.35,
-  broadsideCooldownSeconds: 0.8,
+  frontCooldownSeconds: 0.45,
+  broadsideCooldownSeconds: 1,
   frontMuzzleDistance: 60,
   broadsideMuzzleDistance: 36,
   broadsideMuzzleSpacing: 20,

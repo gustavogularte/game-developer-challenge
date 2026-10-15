@@ -30,12 +30,7 @@ import {
 } from './game/combat';
 import { createHealthBar } from './game/createHealthBar';
 import { createShipView } from './game/createShipView';
-import {
-  enemyConfig,
-  createChaser,
-  createShooter,
-  type EnemyState,
-} from './game/enemy';
+import { enemyConfig, type EnemyState } from './game/enemy';
 import { getHealthStage } from './game/health';
 import { createPlayerInput } from './game/input';
 import { bindKeyboardInput } from './game/keyboard';
@@ -44,6 +39,13 @@ import {
   updatePlayerMovement,
   type PlayerState,
 } from './game/player';
+import { createSpawnState, updateEnemySpawning } from './game/spawn';
+import { createIslands } from './game/islands';
+import { createIslandLayer } from './game/createIslandLayer';
+import {
+  createIslandColliders,
+  isShipPathBlocked,
+} from './game/islandGeometry';
 
 interface GameCanvasProps {
   onScoreChange: (score: number) => void;
@@ -76,13 +78,6 @@ const sceneConfig = {
 };
 
 const playerStartConfig = { maxHealth: 100, rotation: 0, speed: 0 };
-
-// Fixed test positions, relative to the player. Automatic spawning comes later.
-const initialEnemySpawns = [
-  { kind: 'chaser', offsetX: 0, offsetY: -360 },
-  { kind: 'chaser', offsetX: -480, offsetY: 220 },
-  { kind: 'shooter', offsetX: 480, offsetY: 220 },
-] as const;
 
 const playerImages = {
   green: playerGreenImageUrl,
@@ -183,10 +178,18 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
         return;
       }
 
-      const [oceanTexture, projectileTexture, explosionTexture] = await Promise.all([
-        PIXI.Assets.load<PIXI.Texture>(oceanImageUrl),
-        PIXI.Assets.load<PIXI.Texture>(cannonBallImageUrl),
-        PIXI.Assets.load<PIXI.Texture>(explosionImageUrl),
+      const [oceanTexture, projectileTexture, explosionTexture] =
+        await Promise.all([
+          PIXI.Assets.load<PIXI.Texture>(oceanImageUrl),
+          PIXI.Assets.load<PIXI.Texture>(cannonBallImageUrl),
+          PIXI.Assets.load<PIXI.Texture>(explosionImageUrl),
+        ]);
+
+      if (cancelled) return;
+
+      await PIXI.Assets.load([
+        ...Object.values(chaserImages),
+        ...Object.values(shooterImages),
       ]);
 
       if (cancelled) return;
@@ -203,7 +206,23 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
       const healthBarsLayer = new PIXI.Container();
 
       app.stage.addChild(ocean, world);
-      world.addChild(shipsLayer, projectilesLayer, effectsLayer, healthBarsLayer);
+      world.addChild(
+        shipsLayer,
+        projectilesLayer,
+        effectsLayer,
+        healthBarsLayer,
+      );
+
+      const islands = createIslands();
+      const islandLayer = await createIslandLayer(islands);
+      const islandColliders = createIslandColliders(islands);
+
+      if (cancelled) {
+        islandLayer.destroy({ children: true });
+        return;
+      }
+
+      world.addChildAt(islandLayer, 0);
 
       const playerView = await createShipView(playerImages);
 
@@ -233,6 +252,8 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
       };
 
       const combat = createCombatState();
+      const spawnState = createSpawnState();
+      const pendingEnemies = new Set<EnemyState>();
       let enemies: EnemyState[] = [];
       let score = 0;
 
@@ -241,40 +262,74 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
       const splashGraphics = new Map<SplashState, PIXI.Graphics>();
       const destructionEffects: DestructionEffect[] = [];
 
-      for (const spawn of initialEnemySpawns) {
-        const images = spawn.kind === 'chaser' ? chaserImages : shooterImages;
-        const ship = await createShipView(images);
+      async function addEnemyToScene(enemy: EnemyState): Promise<void> {
+        pendingEnemies.add(enemy);
 
-        if (cancelled) {
-          ship.sprite.destroy({ children: true });
-          return;
+        let ship: ShipView | undefined;
+        let healthBar: HealthBarView | undefined;
+        let committed = false;
+
+        try {
+          const images = enemy.kind === 'chaser' ? chaserImages : shooterImages;
+
+          ship = await createShipView(images);
+
+          if (cancelled || player.health <= 0) return;
+
+          healthBar = await createHealthBar();
+
+          if (cancelled || player.health <= 0) return;
+
+          const boundsRadius = getSpriteBoundsRadius(ship.sprite);
+
+          ship.update(enemy, 0);
+          ship.sprite.position.set(enemy.x, enemy.y);
+          ship.sprite.rotation =
+            enemy.rotation + sceneConfig.shipRotationOffset;
+
+          healthBar.update(enemy);
+          healthBar.container.position.set(
+            enemy.x,
+            enemy.y - boundsRadius - sceneConfig.healthBarGap,
+          );
+
+          shipsLayer.addChild(ship.sprite);
+          healthBarsLayer.addChild(healthBar.container);
+
+          enemyViews.set(enemy, {
+            ship,
+            healthBar,
+            boundsRadius,
+          });
+
+          enemies.push(enemy);
+          committed = true;
+        } catch (error: unknown) {
+          console.error('Failed to create enemy view:', error);
+        } finally {
+          pendingEnemies.delete(enemy);
+
+          if (!committed) {
+            ship?.sprite.destroy({ children: true });
+            healthBar?.container.destroy({ children: true });
+          }
         }
+      }
 
-        shipsLayer.addChild(ship.sprite);
-        const boundsRadius = getSpriteBoundsRadius(ship.sprite);
-        const healthBar = await createHealthBar();
+      function updateSpawns(deltaSeconds: number): void {
+        const reservedEnemies = [...enemies, ...pendingEnemies];
 
-        if (cancelled) {
-          healthBar.container.destroy({ children: true });
-          return;
+        const newEnemies = updateEnemySpawning(
+          spawnState,
+          player,
+          reservedEnemies,
+          deltaSeconds,
+          arenaConfig,
+        );
+
+        for (const enemy of newEnemies) {
+          void addEnemyToScene(enemy);
         }
-
-        healthBarsLayer.addChild(healthBar.container);
-
-        const spawnX = Math.max(
-          boundsRadius,
-          Math.min(player.x + spawn.offsetX, arenaConfig.width - boundsRadius),
-        );
-        const spawnY = Math.max(
-          boundsRadius,
-          Math.min(player.y + spawn.offsetY, arenaConfig.height - boundsRadius),
-        );
-        const enemy = spawn.kind === 'chaser'
-          ? createChaser(spawnX, spawnY)
-          : createShooter(spawnX, spawnY);
-
-        enemies.push(enemy);
-        enemyViews.set(enemy, { ship, healthBar, boundsRadius });
       }
 
       function resizeScene(): void {
@@ -298,7 +353,8 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
       function syncPlayerView(deltaSeconds: number): void {
         playerView.update(player, deltaSeconds);
         playerView.sprite.position.set(player.x, player.y);
-        playerView.sprite.rotation = player.rotation + sceneConfig.shipRotationOffset;
+        playerView.sprite.rotation =
+          player.rotation + sceneConfig.shipRotationOffset;
         playerHealthBar.update(player);
         playerHealthBar.container.position.set(
           player.x,
@@ -321,7 +377,8 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
 
           view.ship.update(enemy, deltaSeconds);
           view.ship.sprite.position.set(enemy.x, enemy.y);
-          view.ship.sprite.rotation = enemy.rotation + sceneConfig.shipRotationOffset;
+          view.ship.sprite.rotation =
+            enemy.rotation + sceneConfig.shipRotationOffset;
           view.healthBar.update(enemy);
           view.healthBar.container.visible = enemy.health > 0;
           view.healthBar.container.position.set(
@@ -375,7 +432,8 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
           if (!graphic) {
             graphic = new PIXI.Graphics()
               .ellipse(
-                0, 0,
+                0,
+                0,
                 splashAppearance.outerRadiusX,
                 splashAppearance.outerRadiusY,
               )
@@ -384,7 +442,8 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
                 width: splashAppearance.outerStrokeWidth,
               })
               .ellipse(
-                0, 0,
+                0,
+                0,
                 splashAppearance.innerRadiusX,
                 splashAppearance.innerRadiusY,
               )
@@ -398,13 +457,20 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
             effectsLayer.addChild(graphic);
           }
 
-          const progress = Math.min(1, splash.elapsedSeconds / splashConfig.durationSeconds);
+          const progress = Math.min(
+            1,
+            splash.elapsedSeconds / splashConfig.durationSeconds,
+          );
           graphic.scale.set(1 + progress * splashAppearance.scaleGrowth);
           graphic.alpha = 1 - progress;
         }
       }
 
-      function createDestructionEffect(x: number, y: number, points: number): void {
+      function createDestructionEffect(
+        x: number,
+        y: number,
+        points: number,
+      ): void {
         const container = new PIXI.Container();
         container.position.set(x, y);
 
@@ -431,7 +497,12 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
         label.visible = points > 0;
         container.addChild(explosion, label);
         effectsLayer.addChild(container);
-        destructionEffects.push({ container, explosion, label, elapsedSeconds: 0 });
+        destructionEffects.push({
+          container,
+          explosion,
+          label,
+          elapsedSeconds: 0,
+        });
       }
 
       function updateDestructionEffects(deltaSeconds: number): void {
@@ -446,7 +517,8 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
           );
 
           effect.explosion.scale.set(
-            destructionAppearance.initialScale + progress * destructionAppearance.scaleGrowth,
+            destructionAppearance.initialScale +
+              progress * destructionAppearance.scaleGrowth,
           );
           effect.label.y =
             destructionAppearance.labelOffsetY -
@@ -466,7 +538,9 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
         for (const event of events) {
           switch (event.type) {
             case 'shotFired':
-              gameAudio?.play(event.action === 'fireFront' ? 'frontShot' : 'broadside');
+              gameAudio?.play(
+                event.action === 'fireFront' ? 'frontShot' : 'broadside',
+              );
               break;
             case 'enemyShotFired':
               gameAudio?.play('frontShot');
@@ -503,8 +577,28 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
         const previousHealth = player.health;
         const deltaSeconds = ticker.deltaMS / sceneConfig.millisecondsPerSecond;
 
+        const previousPlayerPosition = {
+          x: player.x,
+          y: player.y,
+        };
+
         updatePlayerMovement(player, input, deltaSeconds);
+
         constrainPlayerToArena(player, arenaConfig, playerBoundsRadius);
+
+        const hitIsland = isShipPathBlocked(
+          previousPlayerPosition,
+          player,
+          playerBoundsRadius,
+          islandColliders,
+        );
+
+        if (hitIsland) {
+          player.x = previousPlayerPosition.x;
+          player.y = previousPlayerPosition.y;
+          player.speed = 0;
+        }
+        updateSpawns(deltaSeconds);
         updateCombat(combat, player, input, deltaSeconds, arenaConfig, enemies);
 
         updateDestructionEffects(deltaSeconds);

@@ -14,9 +14,9 @@ export interface ArenaBounds {
 }
 
 export const playerMovementConfig = {
-  maxSpeed: 240,
-  acceleration: 240,
-  deceleration: 180,
+  maxSpeed: 160,
+  acceleration: 160,
+  deceleration: 126,
   rotationSpeed: Math.PI,
 };
 

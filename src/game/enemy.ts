@@ -25,9 +25,9 @@ export const enemyConfig = {
 };
 
 export const chaserConfig = {
-  maxHealth: 40,
+  maxHealth: 60,
   radius: 32,
-  moveSpeed: 130,
+  moveSpeed: 110,
   contactDamage: 20,
   contactTolerance: 0.01,
 };

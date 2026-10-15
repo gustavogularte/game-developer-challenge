@@ -28,6 +28,27 @@ for (const portrait of [false, true]) {
     );
     await openGame(page);
     await expect(page.locator('.game-frame')).toHaveCSS('touch-action', 'none');
+    for (const selector of ['.touch-movement', '.touch-attacks']) {
+      const buttons = page.locator(selector).locator('button');
+      const positions = await buttons.evaluateAll((elements) =>
+        elements.map((element) => {
+          const button = element as HTMLButtonElement;
+          return {
+            x: button.offsetLeft,
+            y: button.offsetTop,
+            width: button.offsetWidth,
+          };
+        }),
+      );
+      expect(positions[1].y).toBeLessThan(positions[0].y);
+      expect(positions[1].y).toBeLessThan(positions[2].y);
+      expect(positions[0].x).toBeLessThan(positions[1].x);
+      expect(positions[1].x).toBeLessThan(positions[2].x);
+      for (let index = 0; index < 3; index++) {
+        expect(positions[index].width).toBeGreaterThanOrEqual(72);
+        await expect(buttons.nth(index)).toBeInViewport();
+      }
+    }
     const forwardIcon = page
       .getByRole('button', { name: 'Move forward', exact: true })
       .locator('img');

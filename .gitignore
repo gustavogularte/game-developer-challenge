@@ -3,3 +3,5 @@ dist/
 test-results/
 playwright-report/
 *.local
+CHANGELOG.md
+VALIDATION.md

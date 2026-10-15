@@ -1,3 +1,4 @@
+import { collisionConfig } from './collision';
 import { rewardConfig } from './rewards';
 import type { PlayerInput } from './input';
 import type { ArenaBounds, PlayerState } from './player';
@@ -73,7 +74,7 @@ export const projectileConfig = {
   range: 350,
   lifetimeSeconds: 2,
   damage: 20,
-  radius: 6,
+  radius: collisionConfig.projectileRadius,
 };
 
 export const splashConfig = {

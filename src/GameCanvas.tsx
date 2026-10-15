@@ -1,3 +1,5 @@
+import { getShipIslandRadius } from './game/collision';
+import { getCameraTransform } from './game/camera';
 import * as React from 'react';
 import * as PIXI from 'pixi.js';
 import type { PlayerInput } from './game/input';
@@ -219,7 +221,7 @@ export function GameCanvas({
 
     async function start(): Promise<void> {
       await app.init({
-        resizeTo: window,
+        resizeTo: containerRef.current!,
         background: sceneConfig.backgroundColor,
         autoDensity: true,
         resolution: Math.min(
@@ -286,7 +288,7 @@ export function GameCanvas({
         return;
       }
 
-      world.addChildAt(islandLayer, 0);
+      world.addChildAt(islandLayer, 1);
 
       const playerView = await createShipView(playerImages);
 
@@ -417,26 +419,18 @@ export function GameCanvas({
         }
       }
 
+      function updateCamera(): void {
+        const camera = getCameraTransform(app.screen, arenaConfig, player);
+        world.scale.set(camera.scale);
+        world.position.set(camera.x, camera.y);
+        ocean.tileScale.set(camera.scale);
+        ocean.tilePosition.set(camera.x, camera.y);
+      }
       function resizeScene(): void {
-        const scale = Math.min(
-          app.screen.width / arenaConfig.width,
-          app.screen.height / arenaConfig.height,
-        );
-
-        world.scale.set(scale);
-        world.position.set(
-          (app.screen.width - arenaConfig.width * scale) / 2,
-          (app.screen.height - arenaConfig.height * scale) / 2,
-        );
-
         ocean.width = app.screen.width;
         ocean.height = app.screen.height;
-        ocean.tileScale.set(scale);
-        ocean.tilePosition.set(world.x, world.y);
-
-        if (match.status === 'finished' || paused) {
-          app.render();
-        }
+        updateCamera();
+        if (match.status === 'finished' || paused) app.render();
       }
 
       function syncPlayerView(deltaSeconds: number): void {
@@ -772,7 +766,7 @@ export function GameCanvas({
         const hitIsland = isCirclePathBlocked(
           previousPlayerPosition,
           player,
-          playerBoundsRadius,
+          getShipIslandRadius(),
           islandColliders,
         );
 
@@ -806,6 +800,7 @@ export function GameCanvas({
 
         if (player.health !== previousHealth) onHealthChange(player.health);
 
+        updateCamera();
         syncPlayerView(deltaSeconds);
         syncEnemyViews(deltaSeconds);
         syncProjectileSprites();
@@ -853,7 +848,12 @@ export function GameCanvas({
       window.addEventListener('keydown', onPauseKey);
       app.renderer.on('resize', resizeScene);
       app.ticker.add(updateFrame);
+      const resizeObserver = new ResizeObserver(() => {
+        if (!cancelled) app.resize();
+      });
+      resizeObserver.observe(containerRef.current!);
       unbindScene = () => {
+        resizeObserver.disconnect();
         window.removeEventListener('blur', pause);
         document.removeEventListener('visibilitychange', onVisibilityChange);
         window.removeEventListener('keydown', onPauseKey);
@@ -899,7 +899,7 @@ export function GameCanvas({
 
   return (
     <>
-      <div ref={containerRef} />
+      <div className="game-canvas" ref={containerRef} />
       {loadState !== 'ready' && (
         <div className="loading-overlay" role="status">
           {loadState === 'loading' ? (

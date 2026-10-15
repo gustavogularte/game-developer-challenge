@@ -1,3 +1,7 @@
+import {
+  enterMobileLandscape,
+  leaveMobileLandscape,
+} from './game/mobileDisplay';
 import * as React from 'react';
 import { MainMenu } from './MainMenu';
 import { GameScreen } from './GameScreen';
@@ -12,9 +16,10 @@ function App() {
   const [settings, setSettings] = React.useState(loadSettings);
   function startGame() {
     void unlockAudio().catch(() => {});
-    setScreen('game');
+    void enterMobileLandscape().finally(() => setScreen('game'));
   }
   function returnToMenu() {
+    leaveMobileLandscape();
     setScreen('menu');
   }
   function uiSound(event: React.MouseEvent<HTMLDivElement>) {

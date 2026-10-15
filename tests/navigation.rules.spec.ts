@@ -1,16 +1,17 @@
-import { test, expect } from "@playwright/test";
+import { collisionConfig } from '../src/game/collision';
+import { test, expect } from '@playwright/test';
 import {
   createChaser,
   createShooter,
   updateChaser,
   updateShooter,
   enemyConfig,
-} from "../src/game/enemy";
-import { createIslands } from "../src/game/islands";
+} from '../src/game/enemy';
+import { createIslands } from '../src/game/islands';
 import {
   createIslandColliders,
   isCirclePathBlocked,
-} from "../src/game/islandGeometry";
+} from '../src/game/islandGeometry';
 const colliders = createIslandColliders(createIslands());
 const playerAt = (x: number, y: number) => ({
   x,
@@ -22,12 +23,12 @@ const playerAt = (x: number, y: number) => ({
 });
 const routes = [
   {
-    name: "forest island",
+    name: 'forest island',
     start: { x: 140, y: 400 },
     goal: { x: 1000, y: 400 },
   },
   {
-    name: "rocky island",
+    name: 'rocky island',
     start: { x: 1430, y: 900 },
     goal: { x: 2310, y: 900 },
   },
@@ -81,7 +82,7 @@ for (const route of routes) {
       isCirclePathBlocked(
         enemy,
         player,
-        enemyConfig.islandCollisionRadius,
+        collisionConfig.projectileRadius,
         colliders,
       ),
     ).toBe(false);

@@ -1,5 +1,9 @@
 import { arenaConfig } from './arena';
-import { isCirclePathBlocked, type IslandCollider } from './islandGeometry';
+import {
+  findIslandHitTime,
+  isCirclePathBlocked,
+  type IslandCollider,
+} from './islandGeometry';
 
 interface Point {
   x: number;
@@ -28,6 +32,7 @@ export const navigationConfig = {
   replanSeconds: 0.75,
   targetReplanDistance: 120,
   waypointTolerance: 8,
+  goalProjectionInset: 2,
 };
 const grids = new WeakMap<
   readonly IslandCollider[],
@@ -115,6 +120,37 @@ function closestConnectedNode(
   );
 }
 
+/** The player's center may be too close to shore for the enemy's clearance. */
+function selectSafeGoal(
+  grid: NavigationGrid,
+  target: Point,
+): { node: GridNode; endpoint: Point } | undefined {
+  if (!isCirclePathBlocked(target, target, grid.radius, grid.colliders)) {
+    const node = closestConnectedNode(grid, target);
+    return node ? { node, endpoint: target } : undefined;
+  }
+  const node = grid.nodes
+    .filter((candidate) => candidate.walkable)
+    .sort((a, b) => distance(a, target) - distance(b, target))[0];
+  if (!node) return undefined;
+  const hitTime = findIslandHitTime(node, target, grid.radius, grid.colliders);
+  const length = distance(node, target);
+  const progress =
+    length > 0
+      ? Math.max(
+          0,
+          (hitTime ?? 1) - navigationConfig.goalProjectionInset / length,
+        )
+      : 0;
+  return {
+    node,
+    endpoint: {
+      x: node.x + (target.x - node.x) * progress,
+      y: node.y + (target.y - node.y) * progress,
+    },
+  };
+}
+
 function findRoute(
   start: Point,
   target: Point,
@@ -122,9 +158,10 @@ function findRoute(
   colliders: readonly IslandCollider[],
 ): Point[] {
   const grid = getGrid(colliders, radius);
-  const startNode = closestConnectedNode(grid, start),
-    goalNode = closestConnectedNode(grid, target);
-  if (!startNode || !goalNode) return [];
+  const startNode = closestConnectedNode(grid, start);
+  const goal = selectSafeGoal(grid, target);
+  if (!startNode || !goal) return [];
+  const { node: goalNode, endpoint } = goal;
   const open = new Set([startNode.index]);
   const costs = new Map([[startNode.index, 0]]);
   const estimates = new Map([[startNode.index, distance(startNode, goalNode)]]);
@@ -140,7 +177,7 @@ function findRoute(
       }
     }
     if (current === goalNode.index) {
-      const path: Point[] = [{ ...target }];
+      const path: Point[] = [{ ...endpoint }];
       let index = current;
       path.unshift(grid.nodes[index]);
       while (previous.has(index)) {

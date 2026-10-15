@@ -11,10 +11,12 @@ import { isCirclePathBlocked, type IslandCollider } from './islandGeometry';
 
 interface SpawnState {
   elapsedSeconds: number;
+  firstSpawnPending: boolean;
 }
 
 export const spawnConfig = {
   intervalSeconds: 3,
+  firstSpawnDelaySeconds: 1,
   maxActiveEnemies: 8,
   arenaMargin: 96,
   minimumPlayerDistance: 500,
@@ -30,6 +32,7 @@ const largestEnemyRadius = Math.max(chaserConfig.radius, shooterConfig.radius);
 export function createSpawnState(): SpawnState {
   return {
     elapsedSeconds: 0,
+    firstSpawnPending: true,
   };
 }
 
@@ -103,11 +106,15 @@ export function updateEnemySpawning(
   )
     return [];
 
-  state.elapsedSeconds += deltaSeconds;
+  state.elapsedSeconds += Math.max(0, deltaSeconds);
 
-  const scheduledSpawns = Math.floor(state.elapsedSeconds / intervalSeconds);
-
-  state.elapsedSeconds %= intervalSeconds;
+  const nextDelay = state.firstSpawnPending
+    ? spawnConfig.firstSpawnDelaySeconds
+    : intervalSeconds;
+  if (state.elapsedSeconds < nextDelay) return [];
+  const scheduledSpawns =
+    1 + Math.floor((state.elapsedSeconds - nextDelay) / intervalSeconds);
+  state.elapsedSeconds -= nextDelay + (scheduledSpawns - 1) * intervalSeconds;
 
   const spawnedEnemies: EnemyState[] = [];
   const activeEnemies = enemies.filter((enemy) => enemy.health > 0);
@@ -117,6 +124,8 @@ export function updateEnemySpawning(
       activeEnemies.length + spawnedEnemies.length >=
       spawnConfig.maxActiveEnemies
     ) {
+      if (state.firstSpawnPending)
+        state.elapsedSeconds = spawnConfig.firstSpawnDelaySeconds;
       break;
     }
 
@@ -128,7 +137,14 @@ export function updateEnemySpawning(
       random,
     );
 
-    if (!position) continue;
+    if (!position) {
+      if (state.firstSpawnPending) {
+        // Retry the first safe spawn next frame instead of waiting a full interval.
+        state.elapsedSeconds = spawnConfig.firstSpawnDelaySeconds;
+        break;
+      }
+      continue;
+    }
 
     const enemy =
       random() < spawnConfig.chaserProbability
@@ -136,6 +152,7 @@ export function updateEnemySpawning(
         : createShooter(position.x, position.y, chooseShooterVariant(random()));
 
     spawnedEnemies.push(enemy);
+    state.firstSpawnPending = false;
   }
 
   return spawnedEnemies;

@@ -19,12 +19,12 @@ No environment variables or private services are required. Open the HTTP address
 - A / Arrow Left, D / Arrow Right: rotate.
 - Space: front cannon. Q / E: left / right broadsides.
 - Escape or the HUD pause button: pause.
-- Touch controls support simultaneous movement and attacks. Landscape is recommended on mobile.
+- On mobile, hold the left steering pad to sail and slide the same finger left/right to turn while moving. Use a second finger on the separate fire buttons. Gameplay uses landscape: the app requests fullscreen and orientation lock where supported, with a CSS landscape fallback if the browser refuses.
 - Losing focus or hiding the tab pauses automatically. Resume requires an explicit action.
 
 ## Options and rules
 
-Match duration: 60, 120 or 180 active seconds. Enemy spawn interval: integer seconds from 1 to 10. Options persist locally; each battle copies the settings when it starts. Changing Options while paused affects the next battle.
+Match duration: 60, 120 or 180 active seconds. Enemy spawn interval: integer seconds from 1 to 10. The first enemy is scheduled after one active second; subsequent spawns use the configured interval. If no safe first spawn position is available, the next frame retries without waiting a full interval. Options persist locally; each battle copies the settings when it starts. Changing Options while paused affects the next battle.
 
 Every enemy destroyed by the player awards exactly one point. Chaser contact explosions award zero points. Spawns choose Chaser or Shooter randomly with equal probability. Among Shooters, the weights are 75% standard, 20% healer, 5% speed reward. Random selection does not guarantee both enemy types in every individual battle.
 
@@ -62,6 +62,8 @@ Use the Vite preset, `pnpm build`, and output directory `dist` on a static HTTPS
 
 ## Remaining delivery work
 
-The full challenge still needs gameplay E2E coverage through real combat inputs, versioned visual regression baselines, three-minute performance profiling and five-cycle memory measurements. Desktop/mobile browser emulation does not replace verification on a physical phone. Audio playback still needs a listening check on the target devices. Enemies use cached A* routes to navigate around islands, with swept collision checks on every movement segment.
+The full challenge still needs gameplay E2E coverage through real combat inputs, versioned visual regression baselines, three-minute performance profiling and five-cycle memory measurements. Desktop/mobile browser emulation does not replace verification on a physical phone, especially fullscreen and operating-system orientation locking. Audio playback still needs a listening check on the target devices. Enemies use cached A* routes to navigate around islands, with swept collision checks on every movement segment.
 
 Assets are supplied by the challenge. No external fonts were added; the interface uses system monospace fonts.
+
+Ship/island collision uses a shared hull radius plus a 10-world-unit shore clearance, configured in `src/game/collision.ts`. Navigation projects shoreline targets onto a safe approach point when the enemy cannot occupy the player’s exact center. Projectile line of sight uses projectile clearance rather than ship clearance. Water wakes are distance-based, fade after stopping and have a fixed resource cap.

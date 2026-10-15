@@ -63,7 +63,7 @@ export function GameScreen({ onMainMenu, settings, onSettingsChange }: Props) {
     setMatchNumber((value) => value + 1);
   }
   return (
-    <div>
+    <div className="game-frame">
       <GameCanvas
         key={matchNumber}
         settings={snapshot}

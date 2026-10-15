@@ -1,3 +1,12 @@
+export const collisionConfig = {
+  shipHullRadius: 66,
+  shoreClearance: 10,
+  projectileRadius: 6,
+};
+export function getShipIslandRadius(): number {
+  return collisionConfig.shipHullRadius + collisionConfig.shoreClearance;
+}
+
 interface Position {
   x: number;
   y: number;

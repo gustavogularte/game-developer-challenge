@@ -1,3 +1,4 @@
+import { collisionConfig, getShipIslandRadius } from './collision';
 import { getNavigationTarget } from './navigation';
 import { applyDamage, type HealthState } from './health';
 import type { PlayerState } from './player';
@@ -27,7 +28,7 @@ export type EnemyState = ChaserState | ShooterState;
 
 export const enemyConfig = {
   corpseDurationSeconds: 0.8,
-  islandCollisionRadius: 66,
+  islandCollisionRadius: getShipIslandRadius(),
 };
 
 export const chaserConfig = {
@@ -196,13 +197,24 @@ export function updateShooter(
     enemy.shotCooldownSeconds - deltaSeconds,
   );
 
-  const target = getNavigationTarget(
-    enemy,
-    player,
-    enemyConfig.islandCollisionRadius,
-    islandColliders,
-    deltaSeconds,
-  );
+  const canHoldPosition =
+    Math.hypot(player.x - enemy.x, player.y - enemy.y) <=
+      shooterConfig.preferredDistance &&
+    !isCirclePathBlocked(
+      enemy,
+      player,
+      collisionConfig.projectileRadius,
+      islandColliders,
+    );
+  const target = canHoldPosition
+    ? player
+    : getNavigationTarget(
+        enemy,
+        player,
+        enemyConfig.islandCollisionRadius,
+        islandColliders,
+        deltaSeconds,
+      );
   const dx = target.x - enemy.x;
   const dy = target.y - enemy.y;
   const distance = Math.hypot(dx, dy);
@@ -241,7 +253,7 @@ export function updateShooter(
   const hasLineOfSight = !isCirclePathBlocked(
     enemy,
     player,
-    enemyConfig.islandCollisionRadius,
+    collisionConfig.projectileRadius,
     islandColliders,
   );
   if (

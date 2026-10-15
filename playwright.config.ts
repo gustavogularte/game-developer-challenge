@@ -8,5 +8,5 @@ export default defineConfig({
     { name: 'desktop', testMatch: '**/*.browser.spec.ts', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },
     { name: 'mobile', testMatch: '**/*.browser.spec.ts', use: { ...devices['Pixel 7'], viewport: { width: 915, height: 412 } } },
   ],
-  webServer: { command: 'pnpm dev --host 127.0.0.1 --port 4187 --strictPort', url: 'http://127.0.0.1:4187', reuseExistingServer: !process.env.CI },
+  webServer: { command: 'node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 4187 --strictPort', url: 'http://127.0.0.1:4187', reuseExistingServer: !process.env.CI },
 });

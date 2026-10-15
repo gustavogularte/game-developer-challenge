@@ -1,22 +1,190 @@
-import type { HealthState } from './health';
+import { applyDamage, type HealthState } from './health';
+import type { PlayerState } from './player';
 
-export interface EnemyState extends HealthState {
+interface BaseEnemyState extends HealthState {
   x: number;
   y: number;
   rotation: number;
   radius: number;
+  deadElapsedSeconds: number;
 }
 
-export function createStationaryEnemy(
-  x: number,
-  y: number,
-): EnemyState {
+export interface ChaserState extends BaseEnemyState {
+  kind: 'chaser';
+}
+
+export interface ShooterState extends BaseEnemyState {
+  kind: 'shooter';
+  shotCooldownSeconds: number;
+}
+
+export type EnemyState = ChaserState | ShooterState;
+
+export const enemyConfig = {
+  corpseDurationSeconds: 0.8,
+};
+
+export const chaserConfig = {
+  maxHealth: 40,
+  radius: 32,
+  moveSpeed: 130,
+  contactDamage: 20,
+  contactTolerance: 0.01,
+};
+
+export const shooterConfig = {
+  maxHealth: 100,
+  radius: 32,
+  moveSpeed: 100,
+  rotationSpeed: Math.PI,
+  preferredDistance: 260,
+  attackRange: 420,
+  attackAlignmentTolerance: 0.15,
+  shotCooldownSeconds: 1.4,
+  muzzleDistance: 60,
+  projectileSpeed: 300,
+  projectileRange: 550,
+  projectileLifetimeSeconds: 3,
+  projectileDamage: 10,
+};
+
+export function createChaser(x: number, y: number): ChaserState {
   return {
+    kind: 'chaser',
     x,
     y,
     rotation: Math.PI,
-    radius: 32,
-    health: 100,
-    maxHealth: 100,
+    radius: chaserConfig.radius,
+    health: chaserConfig.maxHealth,
+    maxHealth: chaserConfig.maxHealth,
+    deadElapsedSeconds: 0,
   };
+}
+
+export function createShooter(x: number, y: number): ShooterState {
+  return {
+    kind: 'shooter',
+    x,
+    y,
+    rotation: Math.PI,
+    radius: shooterConfig.radius,
+    health: shooterConfig.maxHealth,
+    maxHealth: shooterConfig.maxHealth,
+    deadElapsedSeconds: 0,
+    shotCooldownSeconds: 0,
+  };
+}
+
+// Returns true only on the frame in which the Chaser explodes on contact.
+export function updateChaser(
+  enemy: ChaserState,
+  player: PlayerState,
+  deltaSeconds: number,
+  playerRadius: number,
+): boolean {
+  if (enemy.health <= 0) {
+    enemy.deadElapsedSeconds += deltaSeconds;
+    return false;
+  }
+
+  if (player.health <= 0) return false;
+
+  const dx = player.x - enemy.x;
+  const dy = player.y - enemy.y;
+  const distance = Math.hypot(dx, dy);
+  const contactDistance = enemy.radius + playerRadius;
+
+  if (distance > 0) {
+    enemy.rotation = Math.atan2(dx, -dy);
+
+    const availableDistance = Math.max(0, distance - contactDistance);
+    const movement = Math.min(
+      chaserConfig.moveSpeed * deltaSeconds,
+      availableDistance,
+    );
+
+    enemy.x += (dx / distance) * movement;
+    enemy.y += (dy / distance) * movement;
+  }
+
+  const currentDistance = Math.hypot(
+    player.x - enemy.x,
+    player.y - enemy.y,
+  );
+
+  if (currentDistance > contactDistance + chaserConfig.contactTolerance) {
+    return false;
+  }
+
+  applyDamage(player, chaserConfig.contactDamage);
+  enemy.health = 0;
+  return true;
+}
+
+function getAngleDifference(target: number, current: number): number {
+  return Math.atan2(Math.sin(target - current), Math.cos(target - current));
+}
+
+// Returns true when a shot should be created by the combat system.
+export function updateShooter(
+  enemy: ShooterState,
+  player: PlayerState,
+  deltaSeconds: number,
+): boolean {
+  if (enemy.health <= 0) {
+    enemy.deadElapsedSeconds += deltaSeconds;
+    return false;
+  }
+
+  if (player.health <= 0) return false;
+
+  enemy.shotCooldownSeconds = Math.max(
+    0,
+    enemy.shotCooldownSeconds - deltaSeconds,
+  );
+
+  const dx = player.x - enemy.x;
+  const dy = player.y - enemy.y;
+  const distance = Math.hypot(dx, dy);
+
+  if (distance === 0) return false;
+
+  const targetRotation = Math.atan2(dx, -dy);
+  const angleDifference = getAngleDifference(targetRotation, enemy.rotation);
+  const maxTurn = shooterConfig.rotationSpeed * deltaSeconds;
+
+  enemy.rotation += Math.max(-maxTurn, Math.min(maxTurn, angleDifference));
+
+  const remainingAngle = getAngleDifference(targetRotation, enemy.rotation);
+  const isAimingAtPlayer =
+    Math.abs(remainingAngle) <= shooterConfig.attackAlignmentTolerance;
+
+  if (!isAimingAtPlayer) return false;
+
+  const availableDistance = Math.max(
+    0,
+    distance - shooterConfig.preferredDistance,
+  );
+  const movement = Math.min(
+    shooterConfig.moveSpeed * deltaSeconds,
+    availableDistance,
+  );
+
+  enemy.x += Math.sin(enemy.rotation) * movement;
+  enemy.y -= Math.cos(enemy.rotation) * movement;
+
+  const currentDistance = Math.hypot(
+    player.x - enemy.x,
+    player.y - enemy.y,
+  );
+
+  if (
+    currentDistance > shooterConfig.attackRange ||
+    enemy.shotCooldownSeconds > 0
+  ) {
+    return false;
+  }
+
+  enemy.shotCooldownSeconds = shooterConfig.shotCooldownSeconds;
+  return true;
 }

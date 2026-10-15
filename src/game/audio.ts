@@ -12,7 +12,7 @@ const sounds = {
   broadside: { url: broadsideUrl, volume: 0.2, loop: false },
   waterHit: { url: waterHitUrl, volume: 0.02, loop: false },
   explosion: { url: explosionUrl, volume: 0.2, loop: false },
-  ocean: { url: oceanUrl, volume: 0.02, loop: true },
+  ocean: { url: oceanUrl, volume: 0.03, loop: true },
   score: { url: scoreUrl, volume: 0.8, loop: false },
   lowHealth: { url: lowHealthUrl, volume: 0.3, loop: true },
   enemySinking: { url: enemySinkingUrl, volume: 0.2, loop: false },

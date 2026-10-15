@@ -14,7 +14,7 @@ export interface ArenaBounds {
 }
 
 export const playerMovementConfig = {
-  maxSpeed: 180,
+  maxSpeed: 240,
   acceleration: 240,
   deceleration: 180,
   rotationSpeed: Math.PI,
@@ -25,6 +25,10 @@ export function updatePlayerMovement(
   input: PlayerInput,
   deltaSeconds: number,
 ): void {
+  if (player.health <= 0) {
+    player.speed = 0;
+    return;
+  }
   const turnDirection = Number(input.turnRight) - Number(input.turnLeft);
 
   player.rotation +=

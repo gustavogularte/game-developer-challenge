@@ -1,7 +1,42 @@
 import * as React from 'react';
 import * as PIXI from 'pixi.js';
-import playerShipImageUrl from '../assets/png/default/ships/ship_2.png';
+
 import oceanImageUrl from '../assets/png/default/tiles/tile_73.png';
+import cannonBallImageUrl from '../assets/png/default/ship_parts/cannon_ball.png';
+import explosionImageUrl from '../assets/png/default/effects/explosion_1.png';
+import playerGreenImageUrl from '../assets/png/default/ships/ship_2.png';
+import playerAmberImageUrl from '../assets/png/default/ships/ship_8.png';
+import playerRedImageUrl from '../assets/png/default/ships/ship_14.png';
+import playerDeadImageUrl from '../assets/png/default/ships/ship_20.png';
+import chaserGreenImageUrl from '../assets/png/default/ships/ship_3.png';
+import chaserAmberImageUrl from '../assets/png/default/ships/ship_9.png';
+import chaserRedImageUrl from '../assets/png/default/ships/ship_15.png';
+import chaserDeadImageUrl from '../assets/png/default/ships/ship_21.png';
+import shooterGreenImageUrl from '../assets/png/default/ships/ship_5.png';
+import shooterAmberImageUrl from '../assets/png/default/ships/ship_11.png';
+import shooterRedImageUrl from '../assets/png/default/ships/ship_17.png';
+import shooterDeadImageUrl from '../assets/png/default/ships/ship_23.png';
+
+import { arenaConfig } from './game/arena';
+import { createGameAudio } from './game/audio';
+import {
+  createCombatState,
+  projectileConfig,
+  splashConfig,
+  updateCombat,
+  type CombatEvent,
+  type ProjectileState,
+  type SplashState,
+} from './game/combat';
+import { createHealthBar } from './game/createHealthBar';
+import { createShipView } from './game/createShipView';
+import {
+  enemyConfig,
+  createChaser,
+  createShooter,
+  type EnemyState,
+} from './game/enemy';
+import { getHealthStage } from './game/health';
 import { createPlayerInput } from './game/input';
 import { bindKeyboardInput } from './game/keyboard';
 import {
@@ -9,55 +44,150 @@ import {
   updatePlayerMovement,
   type PlayerState,
 } from './game/player';
-import cannonBallImageUrl from '../assets/png/default/ship_parts/cannon_ball.png';
-import {
-  createCombatState,
-  projectileConfig,
-  updateCombat,
-  splashConfig,
-  type ProjectileState,
-  type SplashState,
-} from './game/combat';
-import { createHealthBar } from './game/createHealthBar';
-import enemyShipImageUrl from '../assets/png/default/ships/ship_1.png';
-import { createStationaryEnemy } from './game/enemy';
-import explosionImageUrl from '../assets/png/default/effects/explosion_1.png';
-import { createGameAudio } from './game/audio';
 
 interface GameCanvasProps {
   onScoreChange: (score: number) => void;
+  onHealthChange: (health: number) => void;
 }
 
-export function GameCanvas({ onScoreChange }: GameCanvasProps) {
+type ShipView = Awaited<ReturnType<typeof createShipView>>;
+type HealthBarView = Awaited<ReturnType<typeof createHealthBar>>;
+type GameAudio = Awaited<ReturnType<typeof createGameAudio>>;
+
+interface EnemyView {
+  ship: ShipView;
+  healthBar: HealthBarView;
+  boundsRadius: number;
+}
+
+interface DestructionEffect {
+  container: PIXI.Container;
+  explosion: PIXI.Sprite;
+  label: PIXI.Text;
+  elapsedSeconds: number;
+}
+
+const sceneConfig = {
+  backgroundColor: '#167b9c',
+  maxResolution: 2,
+  millisecondsPerSecond: 1000,
+  shipRotationOffset: Math.PI,
+  healthBarGap: 8,
+};
+
+const playerStartConfig = { maxHealth: 100, rotation: 0, speed: 0 };
+
+// Fixed test positions, relative to the player. Automatic spawning comes later.
+const initialEnemySpawns = [
+  { kind: 'chaser', offsetX: 0, offsetY: -360 },
+  { kind: 'chaser', offsetX: -480, offsetY: 220 },
+  { kind: 'shooter', offsetX: 480, offsetY: 220 },
+] as const;
+
+const playerImages = {
+  green: playerGreenImageUrl,
+  amber: playerAmberImageUrl,
+  red: playerRedImageUrl,
+  dead: playerDeadImageUrl,
+};
+
+const chaserImages = {
+  green: chaserGreenImageUrl,
+  amber: chaserAmberImageUrl,
+  red: chaserRedImageUrl,
+  dead: chaserDeadImageUrl,
+};
+
+const shooterImages = {
+  green: shooterGreenImageUrl,
+  amber: shooterAmberImageUrl,
+  red: shooterRedImageUrl,
+  dead: shooterDeadImageUrl,
+};
+
+const splashAppearance = {
+  outerRadiusX: 8,
+  outerRadiusY: 4,
+  outerColor: 0xd9f8ff,
+  outerStrokeWidth: 2,
+  innerRadiusX: 4,
+  innerRadiusY: 2,
+  innerColor: 0xffffff,
+  innerStrokeWidth: 1,
+  scaleGrowth: 2,
+};
+
+const destructionAppearance = {
+  durationSeconds: 0.8,
+  initialScale: 0.6,
+  scaleGrowth: 1,
+  labelOffsetY: -40,
+  labelRiseDistance: 35,
+  fontFamily: 'Arial',
+  fontSize: 28,
+  textColor: '#ffe08a',
+  textStrokeColor: '#38240b',
+  textStrokeWidth: 4,
+};
+
+function getSpriteBoundsRadius(sprite: PIXI.Sprite): number {
+  return Math.hypot(sprite.texture.width, sprite.texture.height) / 2;
+}
+
+export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
   const containerRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     const app = new PIXI.Application();
+    const input = createPlayerInput();
     let cancelled = false;
     let initialized = false;
-    const input = createPlayerInput();
+    let appDestroyed = false;
+    let gameAudio: GameAudio | undefined;
     let unbindKeyboardInput: (() => void) | undefined;
-    let gameAudio: Awaited<ReturnType<typeof createGameAudio>> | undefined;
+    let unbindScene: (() => void) | undefined;
 
-    async function start() {
+    function destroyApp(): void {
+      if (!initialized || appDestroyed) return;
+      appDestroyed = true;
+      app.destroy(true, { children: true });
+    }
+
+    function cleanup(): void {
+      cancelled = true;
+      unbindKeyboardInput?.();
+      unbindScene?.();
+      unbindKeyboardInput = undefined;
+      unbindScene = undefined;
+      gameAudio?.destroy();
+      gameAudio = undefined;
+      destroyApp();
+    }
+
+    async function start(): Promise<void> {
       await app.init({
         resizeTo: window,
-        background: '#167b9c',
+        background: sceneConfig.backgroundColor,
         autoDensity: true,
-        resolution: Math.min(window.devicePixelRatio || 1, 2),
+        resolution: Math.min(
+          window.devicePixelRatio || 1,
+          sceneConfig.maxResolution,
+        ),
         autoStart: false,
       });
 
       initialized = true;
 
       if (cancelled) {
-        app.destroy(true, { children: true });
+        destroyApp();
         return;
       }
 
-      let score = 0;
-
-      const oceanTexture = await PIXI.Assets.load<PIXI.Texture>(oceanImageUrl);
+      const [oceanTexture, projectileTexture, explosionTexture] = await Promise.all([
+        PIXI.Assets.load<PIXI.Texture>(oceanImageUrl),
+        PIXI.Assets.load<PIXI.Texture>(cannonBallImageUrl),
+        PIXI.Assets.load<PIXI.Texture>(explosionImageUrl),
+      ]);
 
       if (cancelled) return;
 
@@ -66,116 +196,144 @@ export function GameCanvas({ onScoreChange }: GameCanvasProps) {
         width: app.screen.width,
         height: app.screen.height,
       });
+      const world = new PIXI.Container();
+      const shipsLayer = new PIXI.Container();
+      const projectilesLayer = new PIXI.Container();
+      const effectsLayer = new PIXI.Container();
+      const healthBarsLayer = new PIXI.Container();
 
-      app.stage.addChild(ocean);
+      app.stage.addChild(ocean, world);
+      world.addChild(shipsLayer, projectilesLayer, effectsLayer, healthBarsLayer);
 
-      const playerShipTexture =
-        await PIXI.Assets.load<PIXI.Texture>(playerShipImageUrl);
-
-      if (cancelled) return;
-
-      const playerShip = new PIXI.Sprite(playerShipTexture);
-
-      playerShip.anchor.set(0.5);
-      const shipRotationOffset = Math.PI;
-
-      const player: PlayerState = {
-        x: app.screen.width / 2,
-        y: app.screen.height / 2,
-        rotation: 0,
-        health: 100,
-        maxHealth: 100,
-        speed: 0,
-      };
-
-      function syncPlayerSprite() {
-        playerShip.position.set(player.x, player.y);
-        playerShip.rotation = player.rotation + shipRotationOffset;
-      }
-
-      syncPlayerSprite();
-
-      function resizeScene() {
-        ocean.width = app.screen.width;
-        ocean.height = app.screen.height;
-      }
-
-      app.renderer.on('resize', resizeScene);
-
-      const projectileTexture =
-        await PIXI.Assets.load<PIXI.Texture>(cannonBallImageUrl);
-
-      if (cancelled) return;
-
-      const combat = createCombatState();
-
-      const projectileSprites = new Map<ProjectileState, PIXI.Sprite>();
-
-      const splashGraphics = new Map<SplashState, PIXI.Graphics>();
-
-      const playerBoundsRadius =
-        Math.hypot(playerShipTexture.width, playerShipTexture.height) / 2;
-
-      const playerHealthBar = await createHealthBar();
-
-      const enemyTexture =
-        await PIXI.Assets.load<PIXI.Texture>(enemyShipImageUrl);
-
-      if (cancelled) return;
-
-      const enemyHealthBar = await createHealthBar();
+      const playerView = await createShipView(playerImages);
 
       if (cancelled) {
-        enemyHealthBar.container.destroy({ children: true });
+        playerView.sprite.destroy({ children: true });
         return;
       }
 
-      const enemy = createStationaryEnemy(
-        player.x,
-        Math.max(playerBoundsRadius, player.y - 220),
-      );
-
-      const enemySprite = new PIXI.Sprite(enemyTexture);
-
-      enemySprite.anchor.set(0.5);
-
-      const enemyBoundsRadius =
-        Math.hypot(enemyTexture.width, enemyTexture.height) / 2;
-
-      app.stage.addChild(enemySprite, enemyHealthBar.container);
-
-      function syncEnemyView() {
-        const isAlive = enemy.health > 0;
-
-        enemySprite.visible = isAlive;
-        enemyHealthBar.container.visible = isAlive;
-
-        enemySprite.position.set(enemy.x, enemy.y);
-        enemySprite.rotation = enemy.rotation + shipRotationOffset;
-
-        enemyHealthBar.update(enemy);
-        enemyHealthBar.container.position.set(
-          enemy.x,
-          enemy.y - enemyBoundsRadius - healthBarGap,
-        );
-      }
+      shipsLayer.addChild(playerView.sprite);
+      const playerBoundsRadius = getSpriteBoundsRadius(playerView.sprite);
+      const playerHealthBar = await createHealthBar();
 
       if (cancelled) {
         playerHealthBar.container.destroy({ children: true });
         return;
       }
 
-      app.stage.addChild(playerHealthBar.container);
+      healthBarsLayer.addChild(playerHealthBar.container);
 
-      app.stage.addChild(playerShip);
+      const player: PlayerState = {
+        x: arenaConfig.width / 2,
+        y: arenaConfig.height / 2,
+        rotation: playerStartConfig.rotation,
+        speed: playerStartConfig.speed,
+        health: playerStartConfig.maxHealth,
+        maxHealth: playerStartConfig.maxHealth,
+      };
 
-      containerRef.current?.appendChild(app.canvas);
+      const combat = createCombatState();
+      let enemies: EnemyState[] = [];
+      let score = 0;
 
-      resizeScene();
+      const enemyViews = new Map<EnemyState, EnemyView>();
+      const projectileSprites = new Map<ProjectileState, PIXI.Sprite>();
+      const splashGraphics = new Map<SplashState, PIXI.Graphics>();
+      const destructionEffects: DestructionEffect[] = [];
 
-      unbindKeyboardInput = bindKeyboardInput(input);
+      for (const spawn of initialEnemySpawns) {
+        const images = spawn.kind === 'chaser' ? chaserImages : shooterImages;
+        const ship = await createShipView(images);
 
-      function syncProjectileSprites() {
+        if (cancelled) {
+          ship.sprite.destroy({ children: true });
+          return;
+        }
+
+        shipsLayer.addChild(ship.sprite);
+        const boundsRadius = getSpriteBoundsRadius(ship.sprite);
+        const healthBar = await createHealthBar();
+
+        if (cancelled) {
+          healthBar.container.destroy({ children: true });
+          return;
+        }
+
+        healthBarsLayer.addChild(healthBar.container);
+
+        const spawnX = Math.max(
+          boundsRadius,
+          Math.min(player.x + spawn.offsetX, arenaConfig.width - boundsRadius),
+        );
+        const spawnY = Math.max(
+          boundsRadius,
+          Math.min(player.y + spawn.offsetY, arenaConfig.height - boundsRadius),
+        );
+        const enemy = spawn.kind === 'chaser'
+          ? createChaser(spawnX, spawnY)
+          : createShooter(spawnX, spawnY);
+
+        enemies.push(enemy);
+        enemyViews.set(enemy, { ship, healthBar, boundsRadius });
+      }
+
+      function resizeScene(): void {
+        const scale = Math.min(
+          app.screen.width / arenaConfig.width,
+          app.screen.height / arenaConfig.height,
+        );
+
+        world.scale.set(scale);
+        world.position.set(
+          (app.screen.width - arenaConfig.width * scale) / 2,
+          (app.screen.height - arenaConfig.height * scale) / 2,
+        );
+
+        ocean.width = app.screen.width;
+        ocean.height = app.screen.height;
+        ocean.tileScale.set(scale);
+        ocean.tilePosition.set(world.x, world.y);
+      }
+
+      function syncPlayerView(deltaSeconds: number): void {
+        playerView.update(player, deltaSeconds);
+        playerView.sprite.position.set(player.x, player.y);
+        playerView.sprite.rotation = player.rotation + sceneConfig.shipRotationOffset;
+        playerHealthBar.update(player);
+        playerHealthBar.container.position.set(
+          player.x,
+          player.y - playerBoundsRadius - sceneConfig.healthBarGap,
+        );
+      }
+
+      function syncEnemyViews(deltaSeconds: number): void {
+        for (const [enemy, view] of enemyViews) {
+          const corpseExpired =
+            enemy.health <= 0 &&
+            enemy.deadElapsedSeconds >= enemyConfig.corpseDurationSeconds;
+
+          if (corpseExpired) {
+            view.ship.sprite.destroy({ children: true });
+            view.healthBar.container.destroy({ children: true });
+            enemyViews.delete(enemy);
+            continue;
+          }
+
+          view.ship.update(enemy, deltaSeconds);
+          view.ship.sprite.position.set(enemy.x, enemy.y);
+          view.ship.sprite.rotation = enemy.rotation + sceneConfig.shipRotationOffset;
+          view.healthBar.update(enemy);
+          view.healthBar.container.visible = enemy.health > 0;
+          view.healthBar.container.position.set(
+            enemy.x,
+            enemy.y - view.boundsRadius - sceneConfig.healthBarGap,
+          );
+        }
+
+        enemies = enemies.filter((enemy) => enemyViews.has(enemy));
+      }
+
+      function syncProjectileSprites(): void {
         const activeProjectiles = new Set(combat.projectiles);
 
         for (const [projectile, sprite] of projectileSprites) {
@@ -193,16 +351,15 @@ export function GameCanvas({ onScoreChange }: GameCanvasProps) {
             sprite.anchor.set(0.5);
             sprite.width = projectileConfig.radius * 2;
             sprite.height = projectileConfig.radius * 2;
-
             projectileSprites.set(projectile, sprite);
-            app.stage.addChild(sprite);
+            projectilesLayer.addChild(sprite);
           }
 
           sprite.position.set(projectile.x, projectile.y);
         }
       }
 
-      function syncSplashGraphics() {
+      function syncSplashGraphics(): void {
         const activeSplashes = new Set(combat.splashes);
 
         for (const [splash, graphic] of splashGraphics) {
@@ -216,203 +373,189 @@ export function GameCanvas({ onScoreChange }: GameCanvasProps) {
           let graphic = splashGraphics.get(splash);
 
           if (!graphic) {
-            graphic = new PIXI.Graphics();
-
-            graphic.ellipse(0, 0, 8, 4).stroke({ color: 0xd9f8ff, width: 2 });
-
-            graphic.ellipse(0, 0, 4, 2).stroke({ color: 0xffffff, width: 1 });
+            graphic = new PIXI.Graphics()
+              .ellipse(
+                0, 0,
+                splashAppearance.outerRadiusX,
+                splashAppearance.outerRadiusY,
+              )
+              .stroke({
+                color: splashAppearance.outerColor,
+                width: splashAppearance.outerStrokeWidth,
+              })
+              .ellipse(
+                0, 0,
+                splashAppearance.innerRadiusX,
+                splashAppearance.innerRadiusY,
+              )
+              .stroke({
+                color: splashAppearance.innerColor,
+                width: splashAppearance.innerStrokeWidth,
+              });
 
             graphic.position.set(splash.x, splash.y);
-
             splashGraphics.set(splash, graphic);
-            app.stage.addChild(graphic);
+            effectsLayer.addChild(graphic);
           }
 
-          const progress = Math.min(
-            1,
-            splash.elapsedSeconds / splashConfig.durationSeconds,
-          );
-
-          graphic.scale.set(1 + progress * 2);
+          const progress = Math.min(1, splash.elapsedSeconds / splashConfig.durationSeconds);
+          graphic.scale.set(1 + progress * splashAppearance.scaleGrowth);
           graphic.alpha = 1 - progress;
         }
       }
 
-      const healthBarGap = 8;
-
-      function syncPlayerHealthBar() {
-        playerHealthBar.update(player);
-
-        playerHealthBar.container.position.set(
-          player.x,
-          player.y - playerBoundsRadius - healthBarGap,
-        );
-      }
-
-      syncPlayerHealthBar();
-
-      const explosionTexture =
-        await PIXI.Assets.load<PIXI.Texture>(explosionImageUrl);
-
-      if (cancelled) return;
-
-      const destructionEffects: {
-        container: PIXI.Container;
-        explosion: PIXI.Sprite;
-        label: PIXI.Text;
-        elapsedSeconds: number;
-      }[] = [];
-
-      const destructionEffectDuration = 0.8;
-
-      function createDestructionEffect(x: number, y: number) {
+      function createDestructionEffect(x: number, y: number, points: number): void {
         const container = new PIXI.Container();
         container.position.set(x, y);
 
         const explosion = new PIXI.Sprite(explosionTexture);
         explosion.anchor.set(0.5);
-        explosion.scale.set(0.6);
+        explosion.scale.set(destructionAppearance.initialScale);
 
         const label = new PIXI.Text({
-          text: '+1',
+          text: `+${points}`,
           style: {
-            fontFamily: 'Arial',
-            fontSize: 28,
+            fontFamily: destructionAppearance.fontFamily,
+            fontSize: destructionAppearance.fontSize,
             fontWeight: 'bold',
-            fill: '#ffe08a',
+            fill: destructionAppearance.textColor,
             stroke: {
-              color: '#38240b',
-              width: 4,
+              color: destructionAppearance.textStrokeColor,
+              width: destructionAppearance.textStrokeWidth,
             },
           },
         });
 
         label.anchor.set(0.5);
-        label.y = -40;
-
+        label.y = destructionAppearance.labelOffsetY;
+        label.visible = points > 0;
         container.addChild(explosion, label);
-        app.stage.addChild(container);
-
-        destructionEffects.push({
-          container,
-          explosion,
-          label,
-          elapsedSeconds: 0,
-        });
+        effectsLayer.addChild(container);
+        destructionEffects.push({ container, explosion, label, elapsedSeconds: 0 });
       }
 
-      function updateDestructionEffects(deltaSeconds: number) {
+      function updateDestructionEffects(deltaSeconds: number): void {
         for (let index = destructionEffects.length - 1; index >= 0; index--) {
           const effect = destructionEffects[index];
+          if (!effect) continue;
 
           effect.elapsedSeconds += deltaSeconds;
-
           const progress = Math.min(
             1,
-            effect.elapsedSeconds / destructionEffectDuration,
+            effect.elapsedSeconds / destructionAppearance.durationSeconds,
           );
 
-          effect.explosion.scale.set(0.6 + progress);
-          effect.label.y = -40 - progress * 35;
+          effect.explosion.scale.set(
+            destructionAppearance.initialScale + progress * destructionAppearance.scaleGrowth,
+          );
+          effect.label.y =
+            destructionAppearance.labelOffsetY -
+            progress * destructionAppearance.labelRiseDistance;
           effect.container.alpha = 1 - progress;
 
-          if (progress === 1) {
+          if (progress >= 1) {
             effect.container.destroy({ children: true });
             destructionEffects.splice(index, 1);
           }
         }
       }
 
-      function updateFrame(ticker: PIXI.Ticker) {
-        const deltaSeconds = ticker.deltaMS / 1000;
+      function handleCombatEvents(events: readonly CombatEvent[]): void {
+        let scoreChanged = false;
 
-        const bounds = {
-          width: app.screen.width,
-          height: app.screen.height,
-        };
-
-        const hasLowHealth =
-          player.maxHealth > 0 &&
-          player.health > 0 &&
-          player.health / player.maxHealth <= 0.3;
-
-        if (hasLowHealth) {
-          gameAudio?.play('lowHealth');
-        } else {
-          gameAudio?.stop('lowHealth');
-        }
-
-        updatePlayerMovement(player, input, deltaSeconds);
-
-        constrainPlayerToArena(player, bounds, playerBoundsRadius);
-
-        updateCombat(combat, player, input, deltaSeconds, bounds, enemy);
-
-        updateDestructionEffects(deltaSeconds);
-
-        for (const event of combat.events) {
+        for (const event of events) {
           switch (event.type) {
             case 'shotFired':
-              gameAudio?.play(
-                event.action === 'fireFront' ? 'frontShot' : 'broadside',
-              );
+              gameAudio?.play(event.action === 'fireFront' ? 'frontShot' : 'broadside');
               break;
-
+            case 'enemyShotFired':
+              gameAudio?.play('frontShot');
+              break;
             case 'waterHit':
               gameAudio?.play('waterHit');
               break;
-
             case 'enemyDestroyed':
-              score += 1;
-              onScoreChange(score);
-
-              createDestructionEffect(event.x, event.y);
-
+              createDestructionEffect(event.x, event.y, event.points);
               gameAudio?.play('explosion');
-              gameAudio?.play('score');
               gameAudio?.play('enemySinking');
+
+              if (event.points > 0) {
+                score += event.points;
+                scoreChanged = true;
+                gameAudio?.play('score');
+              }
               break;
           }
         }
 
-        syncPlayerSprite();
-        syncProjectileSprites();
-        syncSplashGraphics();
-        syncPlayerHealthBar();
-        syncEnemyView();
+        if (scoreChanged) onScoreChange(score);
       }
 
-      gameAudio = await createGameAudio().catch((error) => {
+      function syncLowHealthAudio(): void {
+        if (getHealthStage(player) === 'red') {
+          gameAudio?.play('lowHealth');
+        } else {
+          gameAudio?.stop('lowHealth');
+        }
+      }
+
+      function updateFrame(ticker: PIXI.Ticker): void {
+        const previousHealth = player.health;
+        const deltaSeconds = ticker.deltaMS / sceneConfig.millisecondsPerSecond;
+
+        updatePlayerMovement(player, input, deltaSeconds);
+        constrainPlayerToArena(player, arenaConfig, playerBoundsRadius);
+        updateCombat(combat, player, input, deltaSeconds, arenaConfig, enemies);
+
+        updateDestructionEffects(deltaSeconds);
+        handleCombatEvents(combat.events);
+        syncLowHealthAudio();
+
+        if (player.health !== previousHealth) onHealthChange(player.health);
+
+        syncPlayerView(deltaSeconds);
+        syncEnemyViews(deltaSeconds);
+        syncProjectileSprites();
+        syncSplashGraphics();
+      }
+
+      gameAudio = await createGameAudio().catch((error: unknown) => {
         console.error('Failed to load game audio:', error);
         return undefined;
       });
 
       if (cancelled) {
         gameAudio?.destroy();
+        gameAudio = undefined;
         return;
       }
 
-      gameAudio?.play('ocean');
-
+      app.renderer.on('resize', resizeScene);
       app.ticker.add(updateFrame);
+      unbindScene = () => {
+        app.renderer.off('resize', resizeScene);
+        app.ticker.remove(updateFrame);
+      };
+      unbindKeyboardInput = bindKeyboardInput(input);
+
+      resizeScene();
+      syncPlayerView(0);
+      syncEnemyViews(0);
+      onScoreChange(score);
+      onHealthChange(player.health);
+      syncLowHealthAudio();
+      containerRef.current?.appendChild(app.canvas);
+      gameAudio?.play('ocean');
       app.start();
     }
 
-    void start().catch((error) => {
+    void start().catch((error: unknown) => {
       console.error('Failed to initialize PixiJS:', error);
+      cleanup();
     });
 
-    return () => {
-      cancelled = true;
-
-      unbindKeyboardInput?.();
-      gameAudio?.destroy();
-
-      if (initialized) {
-        app.destroy(true, { children: true });
-      }
-    };
-  }, [onScoreChange]);
+    return cleanup;
+  }, [onScoreChange, onHealthChange]);
 
   return <div ref={containerRef} />;
 }

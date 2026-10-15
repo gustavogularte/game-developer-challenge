@@ -1,7 +1,30 @@
-import type { IslandDefinition, IslandPoint } from './islands';
+import type { IslandDefinition, IslandPoint } from "./islands";
 
 export interface IslandCollider {
   points: IslandPoint[];
+}
+
+interface ColliderBounds {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+}
+
+// Island polygons are immutable during a match; calculate their bounds once.
+const polygonBounds = new WeakMap<readonly IslandPoint[], ColliderBounds>();
+function getPolygonBounds(points: readonly IslandPoint[]): ColliderBounds {
+  const cached = polygonBounds.get(points);
+  if (cached) return cached;
+  const bounds = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
+  for (const point of points) {
+    bounds.minX = Math.min(bounds.minX, point.x);
+    bounds.minY = Math.min(bounds.minY, point.y);
+    bounds.maxX = Math.max(bounds.maxX, point.x);
+    bounds.maxY = Math.max(bounds.maxY, point.y);
+  }
+  polygonBounds.set(points, bounds);
+  return bounds;
 }
 
 const geometryConfig = {
@@ -168,9 +191,17 @@ export function isCirclePathBlocked(
   colliders: readonly IslandCollider[],
 ): boolean {
   const radiusSquared = radius * radius;
+  const minX = Math.min(start.x, end.x) - radius;
+  const maxX = Math.max(start.x, end.x) + radius;
+  const minY = Math.min(start.y, end.y) - radius;
+  const maxY = Math.max(start.y, end.y) + radius;
 
   for (const collider of colliders) {
     const polygon = collider.points;
+    const bounds = getPolygonBounds(polygon);
+    // Broad phase: distant islands cannot intersect this swept circle.
+    if (maxX < bounds.minX || minX > bounds.maxX ||
+        maxY < bounds.minY || minY > bounds.maxY) continue;
 
     if (isPointInside(start, polygon) || isPointInside(end, polygon)) {
       return true;

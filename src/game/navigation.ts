@@ -1,9 +1,9 @@
-import { arenaConfig } from './arena';
+import { arenaConfig } from "./arena";
 import {
   findIslandHitTime,
   isCirclePathBlocked,
   type IslandCollider,
-} from './islandGeometry';
+} from "./islandGeometry";
 
 interface Point {
   x: number;
@@ -29,6 +29,7 @@ interface Route {
 }
 export const navigationConfig = {
   cellSize: 80,
+  preparationNodesPerBatch: 128,
   replanSeconds: 0.75,
   targetReplanDistance: 120,
   waypointTolerance: 8,
@@ -108,16 +109,42 @@ function neighbors(grid: NavigationGrid, node: GridNode): number[] {
 function distance(a: Point, b: Point): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
+function closestWalkableNode(grid: NavigationGrid, position: Point): GridNode | undefined {
+  let closest: GridNode | undefined;
+  let bestDistanceSquared = Infinity;
+  for (const node of grid.nodes) {
+    if (!node.walkable) continue;
+    const dx = node.x - position.x;
+    const dy = node.y - position.y;
+    const distanceSquared = dx * dx + dy * dy;
+    if (distanceSquared < bestDistanceSquared) {
+      closest = node;
+      bestDistanceSquared = distanceSquared;
+    }
+  }
+  return closest;
+}
+
 function closestConnectedNode(
   grid: NavigationGrid,
   position: Point,
 ): GridNode | undefined {
-  const candidates = grid.nodes
-    .filter((node) => node.walkable)
-    .sort((a, b) => distance(a, position) - distance(b, position));
-  return candidates.find(
-    (node) => !isCirclePathBlocked(position, node, grid.radius, grid.colliders),
-  );
+  const nearest = closestWalkableNode(grid, position);
+  if (nearest && !isCirclePathBlocked(position, nearest, grid.radius, grid.colliders))
+    return nearest;
+  let closest: GridNode | undefined;
+  let closestDistanceSquared = Infinity;
+  for (const node of grid.nodes) {
+    if (!node.walkable) continue;
+    const dx = node.x - position.x;
+    const dy = node.y - position.y;
+    const distanceSquared = dx * dx + dy * dy;
+    if (distanceSquared >= closestDistanceSquared) continue;
+    if (isCirclePathBlocked(position, node, grid.radius, grid.colliders)) continue;
+    closest = node;
+    closestDistanceSquared = distanceSquared;
+  }
+  return closest;
 }
 
 /** The player's center may be too close to shore for the enemy's clearance. */
@@ -129,9 +156,7 @@ function selectSafeGoal(
     const node = closestConnectedNode(grid, target);
     return node ? { node, endpoint: target } : undefined;
   }
-  const node = grid.nodes
-    .filter((candidate) => candidate.walkable)
-    .sort((a, b) => distance(a, target) - distance(b, target))[0];
+  const node = closestWalkableNode(grid, target);
   if (!node) return undefined;
   const hitTime = findIslandHitTime(node, target, grid.radius, grid.colliders);
   const length = distance(node, target);
@@ -217,6 +242,22 @@ function findRoute(
     }
   }
   return [];
+}
+
+/** Prepare static navigation while the loading screen is still visible.
+ * Yield between batches so building links never freezes a running match.
+ */
+export async function prepareNavigation(
+  colliders: readonly IslandCollider[],
+  radius: number,
+): Promise<void> {
+  const grid = getGrid(colliders, radius);
+  for (let index = 0; index < grid.nodes.length; index++) {
+    const node = grid.nodes[index];
+    if (node.walkable) neighbors(grid, node);
+    if ((index + 1) % navigationConfig.preparationNodesPerBatch === 0)
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  }
 }
 
 /** Use a direct course in open water; otherwise follow a cached A* route. */

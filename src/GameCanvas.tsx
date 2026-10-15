@@ -1,3 +1,4 @@
+import { prepareNavigation } from './game/navigation';
 import { createIslandCannons } from './game/islandCannons';
 import { createIslandCannonLayer } from './game/createIslandCannonLayer';
 import { createCrewLayer } from './game/createCrewLayer';
@@ -286,6 +287,7 @@ export function GameCanvas({
       const islands = createIslands();
       const islandLayer = await createIslandLayer(islands);
       const islandColliders = createIslandColliders(islands);
+      await prepareNavigation(islandColliders, getShipIslandRadius());
 
       if (cancelled) {
         islandLayer.destroy({ children: true });

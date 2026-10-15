@@ -1,24 +1,25 @@
-import * as React from "react";
-import type { GameControls } from "./GameCanvas";
-import type { PlayerInput } from "./game/input";
-type MoveAction = "moveForward" | "turnLeft" | "turnRight";
+import './TouchControls.css';
+import * as React from 'react';
+import type { GameControls } from './GameCanvas';
+import type { PlayerInput } from './game/input';
+type MoveAction = 'moveForward' | 'turnLeft' | 'turnRight';
 interface MovementPointer {
   action: MoveAction;
   forward: boolean;
 }
 const movementButtons = [
-  { action: "turnLeft", label: "Turn left", icon: "turn_left" },
-  { action: "moveForward", label: "Move forward", icon: "forward" },
-  { action: "turnRight", label: "Turn right", icon: "turn_right" },
+  { action: 'turnLeft', label: 'Turn left', icon: 'turn_left' },
+  { action: 'moveForward', label: 'Move forward', icon: 'forward' },
+  { action: 'turnRight', label: 'Turn right', icon: 'turn_right' },
 ] as const;
 const attacks = [
-  { action: "fireLeft", label: "Fire left", icon: "fire_left" },
-  { action: "fireFront", label: "Fire front", icon: "fire_front" },
-  { action: "fireRight", label: "Fire right", icon: "fire_right" },
+  { action: 'fireLeft', label: 'Fire left', icon: 'fire_left' },
+  { action: 'fireFront', label: 'Fire front', icon: 'fire_front' },
+  { action: 'fireRight', label: 'Fire right', icon: 'fire_right' },
 ] as const;
 const icons = import.meta.glob<string>(
-  "../assets/png/default/ui/controls/icon_*.png",
-  { eager: true, query: "?url", import: "default" },
+  '../assets/png/default/ui/controls/icon_*.png',
+  { eager: true, query: '?url', import: 'default' },
 );
 const idleMovement = { moveForward: false, turnLeft: false, turnRight: false };
 export function TouchControls({
@@ -44,12 +45,12 @@ export function TouchControls({
     }
     return () => {
       for (const action of [
-        "moveForward",
-        "turnLeft",
-        "turnRight",
-        "fireLeft",
-        "fireFront",
-        "fireRight",
+        'moveForward',
+        'turnLeft',
+        'turnRight',
+        'fireLeft',
+        'fireFront',
+        'fireRight',
       ] as const)
         controls.setInput?.(action, false);
     };
@@ -58,8 +59,8 @@ export function TouchControls({
     const pointers = [...movementPointers.current.values()];
     const next = {
       moveForward: pointers.some((pointer) => pointer.forward),
-      turnLeft: pointers.some((pointer) => pointer.action === "turnLeft"),
-      turnRight: pointers.some((pointer) => pointer.action === "turnRight"),
+      turnLeft: pointers.some((pointer) => pointer.action === 'turnLeft'),
+      turnRight: pointers.some((pointer) => pointer.action === 'turnRight'),
     };
     for (const action of Object.keys(next) as MoveAction[])
       controls.setInput?.(action, next[action]);
@@ -68,8 +69,9 @@ export function TouchControls({
   function slideMovement(event: React.PointerEvent<HTMLDivElement>) {
     const pointer = movementPointers.current.get(event.pointerId);
     if (!pointer || disabled) return;
+    event.preventDefault();
     const buttons = groupRef.current?.querySelectorAll<HTMLButtonElement>(
-      "button[data-move-action]",
+      'button[data-move-action]',
     );
     if (!buttons) return;
     for (const button of buttons) {
@@ -80,10 +82,14 @@ export function TouchControls({
         event.clientY >= rect.top &&
         event.clientY <= rect.bottom
       ) {
-        pointer.action = button.dataset.moveAction as MoveAction;
-        // Sliding from forward to a turn keeps thrust held until this finger lifts.
-        pointer.forward ||= pointer.action === "moveForward";
-        publishMovement();
+        const action = button.dataset.moveAction as MoveAction;
+        const forward = pointer.forward || action === 'moveForward';
+        if (action !== pointer.action || forward !== pointer.forward) {
+          pointer.action = action;
+          // Sliding from forward to a turn keeps thrust held until this finger lifts.
+          pointer.forward = forward;
+          publishMovement();
+        }
         break;
       }
     }
@@ -104,6 +110,8 @@ export function TouchControls({
       className="touch-controls"
       aria-label="Ship controls"
       data-ui-silent="true"
+      onDragStart={(event) => event.preventDefault()}
+      onContextMenu={(event) => event.preventDefault()}
     >
       <div
         ref={groupRef}
@@ -131,7 +139,7 @@ export function TouchControls({
               event.currentTarget.setPointerCapture(event.pointerId);
               movementPointers.current.set(event.pointerId, {
                 action,
-                forward: action === "moveForward",
+                forward: action === 'moveForward',
               });
               publishMovement();
             }}
@@ -139,6 +147,7 @@ export function TouchControls({
           >
             <img
               src={icons[`../assets/png/default/ui/controls/icon_${icon}.png`]}
+              draggable={false}
               alt=""
             />
           </button>
@@ -167,6 +176,7 @@ export function TouchControls({
           >
             <img
               src={icons[`../assets/png/default/ui/controls/icon_${icon}.png`]}
+              draggable={false}
               alt=""
             />
           </button>

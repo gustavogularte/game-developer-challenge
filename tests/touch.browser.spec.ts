@@ -27,6 +27,16 @@ for (const portrait of [false, true]) {
       portrait ? { width: 412, height: 915 } : { width: 915, height: 412 },
     );
     await openGame(page);
+    await expect(page.locator('.game-frame')).toHaveCSS('touch-action', 'none');
+    const forwardIcon = page
+      .getByRole('button', { name: 'Move forward', exact: true })
+      .locator('img');
+    await expect(forwardIcon).toHaveJSProperty('draggable', false);
+    await expect(forwardIcon).toHaveCSS('pointer-events', 'none');
+    const scrollBefore = await page.evaluate(() => ({
+      x: window.scrollX,
+      y: window.scrollY,
+    }));
     const pad = page.locator('.touch-movement');
     const rect = await page
       .getByRole('button', { name: 'Move forward', exact: true })
@@ -46,7 +56,17 @@ for (const portrait of [false, true]) {
       type: 'touchStart',
       touchPoints: [finger],
     });
+    await page.waitForTimeout(650);
+    await client.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: [{ ...finger, x: finger.x + 3, y: finger.y + 3 }],
+    });
     await expect(pad).toHaveAttribute('data-forward', 'true');
+    await expect(pad).toHaveAttribute('data-left', 'false');
+    await expect(pad).toHaveAttribute('data-right', 'false');
+    expect(
+      await page.evaluate(() => ({ x: window.scrollX, y: window.scrollY })),
+    ).toEqual(scrollBefore);
     const turnRect = await page
       .getByRole('button', { name: 'Turn right', exact: true })
       .boundingBox();

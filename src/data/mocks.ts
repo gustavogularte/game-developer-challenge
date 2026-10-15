@@ -20,12 +20,18 @@ export const networkScenarios = [
 export type NetworkScenario = (typeof networkScenarios)[number];
 let requestNumber = 0;
 const timedOutIds = new Set<string>();
+/** Failure simulation is opt-in per URL; old persisted failures never affect normal play. */
 export function getScenario(): NetworkScenario {
-  const stored = readStored<NetworkScenario>(storageKeys.scenario, 'success');
-  return networkScenarios.includes(stored) ? stored : 'success';
+  const requested = new URLSearchParams(window.location.search).get('network');
+  return (
+    networkScenarios.find((scenario) => scenario === requested) ?? 'success'
+  );
 }
 export function setScenario(value: NetworkScenario): void {
-  writeStored(storageKeys.scenario, value);
+  const url = new URL(window.location.href);
+  if (value === 'success') url.searchParams.delete('network');
+  else url.searchParams.set('network', value);
+  window.history.replaceState(null, '', url);
   requestNumber = 0;
 }
 export function resetMockData(): void {

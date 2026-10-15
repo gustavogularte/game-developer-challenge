@@ -24,6 +24,7 @@ function App() {
   }
   function uiSound(event: React.MouseEvent<HTMLDivElement>) {
     const button = (event.target as HTMLElement).closest('button');
+    if (button?.closest('[data-ui-silent="true"]')) return;
     if (button && !button.disabled)
       playUiSound(
         (button.dataset.uiSound as SoundName | undefined) ?? 'uiClick',
@@ -37,6 +38,7 @@ function App() {
         if (
           button &&
           !button.disabled &&
+          !button.closest('[data-ui-silent="true"]') &&
           !(
             event.relatedTarget instanceof Node &&
             button.contains(event.relatedTarget)

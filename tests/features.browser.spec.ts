@@ -112,7 +112,7 @@ test('pending registration survives refresh and timeout after commit never dupli
       );
     }
   }, record);
-  await page.goto('/');
+  await page.goto('/?network=timeoutAfterCommit');
   await expect
     .poll(
       () =>
@@ -172,10 +172,8 @@ test('refresh opens the menu while preserving the last result and confirmed hist
   ).toBeVisible();
 });
 test('network failure does not prevent returning to Play', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?network=rankingError');
   await page.getByRole('button', { name: 'RANKING', exact: true }).click();
-  await page.getByText('Network demo', { exact: true }).click();
-  await page.getByRole('combobox').selectOption('rankingError');
   await expect(
     page.getByText('Could not load battles. You can still play.'),
   ).toBeVisible();
@@ -195,7 +193,7 @@ test('registration drains a new queued battle while an earlier request is in fli
     (request) =>
       request.url().endsWith('/api/matches') && request.method() === 'POST',
   );
-  await page.goto('/');
+  await page.goto('/?network=slow');
   await firstRequest;
   await page.evaluate(
     (data) =>
@@ -238,4 +236,54 @@ test.beforeEach(async ({ page, isMobile }) => {
         value: undefined,
       });
   });
+});
+
+test('normal play ignores old saved failure scenarios and has no network controls', async ({
+  page,
+}) => {
+  await page.addInitScript((data) => {
+    localStorage.setItem(
+      'pirate-battle:scenario:v2',
+      JSON.stringify('http400'),
+    );
+    localStorage.setItem('pirate-battle:pending:v2', JSON.stringify([data]));
+  }, record);
+  await page.goto('/');
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          JSON.parse(localStorage.getItem('pirate-battle:pending:v2') ?? '[]')
+            .length,
+      ),
+    )
+    .toBe(0);
+  await page
+    .getByRole('button', { name: 'MATCH HISTORY', exact: true })
+    .click();
+  await expect(
+    page.getByRole('cell', { name: '24', exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText('Network demo', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('combobox')).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: 'RESET DEMO DATA' }),
+  ).toHaveCount(0);
+});
+test('explicit test reset URL restores mock data and consumes the reset flag', async ({
+  page,
+}) => {
+  await page.addInitScript((data) => {
+    localStorage.setItem('pirate-battle:confirmed:v2', JSON.stringify([data]));
+    localStorage.setItem('pirate-battle:last-result:v2', JSON.stringify(data));
+  }, record);
+  await page.goto('/?resetMocks=1');
+  await expect(
+    page.getByRole('button', { name: 'PLAY', exact: true }),
+  ).toBeVisible();
+  expect(new URL(page.url()).searchParams.has('resetMocks')).toBe(false);
+  await page
+    .getByRole('button', { name: 'MATCH HISTORY', exact: true })
+    .click();
+  await expect(page.getByText('No battles yet.')).toBeVisible();
 });

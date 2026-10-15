@@ -105,7 +105,9 @@ test('random shooter weights keep special rarer than healer and standard', () =>
   const ship = player();
   for (const [roll, variant] of [
     [0.1, 'standard'],
+    [0.6, 'healer'],
     [0.8, 'healer'],
+    [0.9, 'speed'],
     [0.99, 'speed'],
   ] as const) {
     const values = [0.01, 0.01, 0.9, roll];

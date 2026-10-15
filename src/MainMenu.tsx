@@ -65,11 +65,6 @@ export function MainMenu({
             MATCH HISTORY
           </button>
         </div>
-        <p className="controls-help">
-          W / ↑: MOVE · A / D: TURN
-          <br />
-          SPACE: FRONT · Q / E: BROADSIDES · ESC: PAUSE
-        </p>
       </section>
     </main>
   );

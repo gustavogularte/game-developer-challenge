@@ -59,7 +59,7 @@ export function MatchSyncProvider({ children }: { children: React.ReactNode }) {
             confirmedAny = true;
           } catch {
             setError(
-              'Could not sync some battles. Check your connection or the Network demo scenario and try again.',
+              'Could not sync some battles. Check your connection and try again.',
             );
           }
           setPending([

@@ -1,3 +1,4 @@
+import { createPlayerFeedback } from './game/createPlayerFeedback';
 import { getShipIslandRadius } from './game/collision';
 import { getCameraTransform } from './game/camera';
 import * as React from 'react';
@@ -297,6 +298,8 @@ export function GameCanvas({
         return;
       }
 
+      const playerFeedback = createPlayerFeedback(playerView.sprite);
+      playerView.container.addChildAt(playerFeedback.container, 0);
       shipsLayer.addChild(playerView.container);
       const playerBoundsRadius = getSpriteBoundsRadius(playerView.sprite);
       const playerHealthBar = await createHealthBar();
@@ -435,6 +438,7 @@ export function GameCanvas({
 
       function syncPlayerView(deltaSeconds: number): void {
         playerView.update(player, deltaSeconds);
+        playerFeedback.update(player, combat.speedBoostSeconds, deltaSeconds);
         playerView.container.position.set(player.x, player.y);
         playerView.container.rotation =
           player.rotation + sceneConfig.shipRotationOffset;
@@ -676,28 +680,29 @@ export function GameCanvas({
           if (!view) {
             view = new PIXI.Container();
             const halo = new PIXI.Graphics()
-              .circle(0, 0, 25)
-              .fill({ color: 0x71e894, alpha: 0.22 });
+              .circle(0, 0, 34)
+              .fill({ color: 0x20ff6b, alpha: 0.38 })
+              .stroke({ color: 0x66ff95, alpha: 0.95, width: 3 });
             const wood = new PIXI.Sprite(woodTexture);
             wood.anchor.set(0.5);
             const label = new PIXI.Text({
-              text: '+ HP',
+              text: `HEAL +${rewardConfig.healAmount}`,
               style: {
                 fontFamily: 'monospace',
-                fontSize: 18,
+                fontSize: 24,
                 fontWeight: 'bold',
-                fill: 0xa0ffc2,
-                stroke: { color: 0x183d31, width: 3 },
+                fill: 0x64ff8e,
+                stroke: { color: 0x073b19, width: 4 },
               },
             });
             label.anchor.set(0.5);
-            label.y = -30;
+            label.y = -43;
             view.addChild(halo, wood, label);
             effectsLayer.addChild(view);
             pickupViews.set(pickup, view);
           }
           view.position.set(pickup.x, pickup.y);
-          view.alpha = 0.8 + Math.sin(pickup.remainingSeconds * 4) * 0.2;
+          view.alpha = 0.95 + Math.sin(pickup.remainingSeconds * 4) * 0.05;
         }
       }
       function pause(): void {
@@ -786,7 +791,9 @@ export function GameCanvas({
           islandColliders,
         );
 
+        const healthBeforePickup = player.health;
         collectHealthPickups(pickups, player, deltaSeconds);
+        if (player.health > healthBeforePickup) playerFeedback.flashHealing();
         syncPickups();
         wake.update([player, ...enemies], deltaSeconds);
         updateDestructionEffects(deltaSeconds);

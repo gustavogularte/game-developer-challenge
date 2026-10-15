@@ -19,14 +19,14 @@ No environment variables or private services are required. Open the HTTP address
 - A / Arrow Left, D / Arrow Right: rotate.
 - Space: front cannon. Q / E: left / right broadsides.
 - Escape or the HUD pause button: pause.
-- On mobile, hold the left steering pad to sail and slide the same finger left/right to turn while moving. Use a second finger on the separate fire buttons. Gameplay uses landscape: the app requests fullscreen and orientation lock where supported, with a CSS landscape fallback if the browser refuses.
+- On mobile, hold the forward icon to sail and slide onto the left/right turn icons to turn while moving. Use a second finger on the separate fire buttons. Gameplay uses landscape: the app requests fullscreen and orientation lock where supported, with a CSS landscape fallback if the browser refuses.
 - Losing focus or hiding the tab pauses automatically. Resume requires an explicit action.
 
 ## Options and rules
 
 Match duration: 60, 120 or 180 active seconds. Enemy spawn interval: integer seconds from 1 to 10. The first enemy is scheduled after one active second; subsequent spawns use the configured interval. If no safe first spawn position is available, the next frame retries without waiting a full interval. Options persist locally; each battle copies the settings when it starts. Changing Options while paused affects the next battle.
 
-Every enemy destroyed by the player awards exactly one point. Chaser contact explosions award zero points. Spawns choose Chaser or Shooter randomly with equal probability. Among Shooters, the weights are 75% standard, 20% healer, 5% speed reward. Random selection does not guarantee both enemy types in every individual battle.
+Every enemy destroyed by the player awards exactly one point. Chaser contact explosions award zero points. Spawns choose Chaser or Shooter randomly with equal probability. Among Shooters, the weights are 55% standard, 30% healer, 15% speed reward. Random selection does not guarantee both enemy types in every individual battle.
 
 Healer ships leave wood that restores 25 HP when collected, capped at maximum HP. Wood lasts 20 active seconds. Rare yellow ships grant 50% faster newly fired projectiles for five active seconds. Damage, range and cooldown remain unchanged. Another reward refreshes the duration without stacking the multiplier. Pausing freezes the bonus.
 
@@ -36,11 +36,15 @@ Captain Jack is the local player. Other captains are deterministic fixtures. His
 
 The result and pending registration are stored before submitting through a TanStack Query mutation. Requests use the match ID as the idempotency key. MSW stores confirmed records and returns an existing record on retry. Pending records survive refresh and can be retried from the result or Captain’s Log. Starting another battle remains available while a previous record is pending. An abandoned battle is not registered. The last completed result remains stored after refresh, but the menu opens without automatically displaying the result dialog.
 
-## Network demo
+## Network testing (no player-facing controls)
 
-Open Ranking or Match History, expand **Network demo**, and select a scenario. The selection persists. Select **success** to recover and press **RETRY** for pending registrations. Reset requires confirmation and clears mock records, pending submissions and the last result.
+Normal URLs always use the success scenario. Old failure settings in local storage are ignored, so they cannot leave the game stuck in a simulated outage. Ranking and Match History have no Network demo panel, scenario selector or reset button.
 
-Scenarios: success, empty, slow (2.5 seconds), variable (alternating 1.8 seconds / 100 ms), timeout, offline, HTTP 400, HTTP 500, ranking-only failure, history-only failure, timeout after commit, and registration-only outage. Axios times out after four seconds. Timeout-after-commit writes once before delaying its response; the retry returns the existing record.
+For reproducible tests, explicitly open a URL with `?network=SCENARIO`, for example `http://localhost:5173/?network=timeoutAfterCommit`. Remove the parameter and reload to return to normal operation. This also works on the deployed HTTPS URL. Pending battles are retried on startup; confirmed records are preserved.
+
+Supported scenarios: success, empty, slow (2.5 seconds), variable (alternating 1.8 seconds / 100 ms), timeout, offline, http400, http500, rankingError, historyError, timeoutAfterCommit and registrationOffline. Axios times out after four seconds. Timeout-after-commit writes once before delaying its response; retry returns the existing record.
+
+Only for resetting test data, explicitly open `?resetMocks=1`. This clears confirmed mock matches, pending submissions and the last result, preserves Options and removes the reset parameter after running. Ordinary navigation never resets data.
 
 ## Checks
 
@@ -62,8 +66,10 @@ Use the Vite preset, `pnpm build`, and output directory `dist` on a static HTTPS
 
 ## Remaining delivery work
 
-The full challenge still needs gameplay E2E coverage through real combat inputs, versioned visual regression baselines, three-minute performance profiling and five-cycle memory measurements. Desktop/mobile browser emulation does not replace verification on a physical phone, especially fullscreen and operating-system orientation locking. Audio playback still needs a listening check on the target devices. Enemies use cached A* routes to navigate around islands, with swept collision checks on every movement segment.
+The full challenge still needs gameplay E2E coverage through real combat inputs, versioned visual regression baselines, three-minute performance profiling and five-cycle memory measurements. Desktop/mobile browser emulation does not replace verification on a physical phone, especially fullscreen and operating-system orientation locking. Audio playback still needs a listening check on the target devices. Enemies use cached A\* routes to navigate around islands, with swept collision checks on every movement segment.
 
 Assets are supplied by the challenge. No external fonts were added; the interface uses system monospace fonts.
 
 Ship/island collision uses a shared hull radius plus a 10-world-unit shore clearance, configured in `src/game/collision.ts`. Navigation projects shoreline targets onto a safe approach point when the enemy cannot occupy the player’s exact center. Projectile line of sight uses projectile clearance rather than ship clearance. Water wakes are distance-based, fade after stopping and have a fixed resource cap.
+
+Healing flashes the player green. The projectile-speed bonus adds a soft yellow glow while active. Mobile movement and attack buttons do not play UI click or hover sounds; cannon audio remains enabled.

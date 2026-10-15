@@ -18,7 +18,14 @@ for (const url of Object.values(uiAssets)) {
 }
 async function start() {
   try {
-    const { worker } = await import('./data/mocks');
+    const { worker, resetMockData } = await import('./data/mocks');
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('resetMocks') === '1') {
+      resetMockData();
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete('resetMocks');
+      window.history.replaceState(null, '', cleanUrl);
+    }
     await worker.start({
       onUnhandledFrame: 'bypass',
       quiet: import.meta.env.PROD,

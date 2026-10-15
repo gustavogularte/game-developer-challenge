@@ -27,10 +27,10 @@ for (const portrait of [false, true]) {
       portrait ? { width: 412, height: 915 } : { width: 915, height: 412 },
     );
     await openGame(page);
-    const pad = page.getByRole('button', {
-      name: 'Hold to move, slide left or right to turn',
-    });
-    const rect = await pad.boundingBox();
+    const pad = page.locator('.touch-movement');
+    const rect = await page
+      .getByRole('button', { name: 'Move forward', exact: true })
+      .boundingBox();
     if (!rect) throw new Error('Missing steering pad');
     const center = { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
     const client = await page.context().newCDPSession(page);
@@ -47,10 +47,14 @@ for (const portrait of [false, true]) {
       touchPoints: [finger],
     });
     await expect(pad).toHaveAttribute('data-forward', 'true');
+    const turnRect = await page
+      .getByRole('button', { name: 'Turn right', exact: true })
+      .boundingBox();
+    if (!turnRect) throw new Error('Missing turn button');
     const moved = {
       ...finger,
-      x: center.x + (portrait ? 0 : 30),
-      y: center.y + (portrait ? 30 : 0),
+      x: turnRect.x + turnRect.width / 2,
+      y: turnRect.y + turnRect.height / 2,
     };
     await client.send('Input.dispatchTouchEvent', {
       type: 'touchMove',

@@ -1,17 +1,26 @@
-import * as React from 'react';
-import type { GameControls } from './GameCanvas';
-import type { PlayerInput } from './game/input';
-import { getSteeringOffset } from './game/touchSteering';
+import * as React from "react";
+import type { GameControls } from "./GameCanvas";
+import type { PlayerInput } from "./game/input";
+type MoveAction = "moveForward" | "turnLeft" | "turnRight";
+interface MovementPointer {
+  action: MoveAction;
+  forward: boolean;
+}
+const movementButtons = [
+  { action: "turnLeft", label: "Turn left", icon: "turn_left" },
+  { action: "moveForward", label: "Move forward", icon: "forward" },
+  { action: "turnRight", label: "Turn right", icon: "turn_right" },
+] as const;
 const attacks = [
-  { action: 'fireLeft', label: 'Fire left', icon: 'fire_left' },
-  { action: 'fireFront', label: 'Fire front', icon: 'fire_front' },
-  { action: 'fireRight', label: 'Fire right', icon: 'fire_right' },
+  { action: "fireLeft", label: "Fire left", icon: "fire_left" },
+  { action: "fireFront", label: "Fire front", icon: "fire_front" },
+  { action: "fireRight", label: "Fire right", icon: "fire_right" },
 ] as const;
 const icons = import.meta.glob<string>(
-  '../assets/png/default/ui/controls/icon_*.png',
-  { eager: true, query: '?url', import: 'default' },
+  "../assets/png/default/ui/controls/icon_*.png",
+  { eager: true, query: "?url", import: "default" },
 );
-const idleSteering = { x: 0, y: 0, forward: false, left: false, right: false };
+const idleMovement = { moveForward: false, turnLeft: false, turnRight: false };
 export function TouchControls({
   controls,
   disabled,
@@ -19,58 +28,69 @@ export function TouchControls({
   controls: GameControls;
   disabled: boolean;
 }) {
-  const steeringPointer = React.useRef<number | null>(null);
+  const groupRef = React.useRef<HTMLDivElement>(null);
+  const movementPointers = React.useRef(new Map<number, MovementPointer>());
   const attackPointers = React.useRef(new Map<number, keyof PlayerInput>());
-  const [steering, setSteering] = React.useState(idleSteering);
+  const [movement, setMovement] = React.useState(idleMovement);
   const [activeAttacks, setActiveAttacks] = React.useState<readonly string[]>(
     [],
   );
   React.useEffect(() => {
     if (disabled) {
-      steeringPointer.current = null;
+      movementPointers.current.clear();
       attackPointers.current.clear();
-      setSteering(idleSteering);
+      setMovement(idleMovement);
       setActiveAttacks([]);
     }
     return () => {
       for (const action of [
-        'moveForward',
-        'turnLeft',
-        'turnRight',
-        'fireLeft',
-        'fireFront',
-        'fireRight',
+        "moveForward",
+        "turnLeft",
+        "turnRight",
+        "fireLeft",
+        "fireFront",
+        "fireRight",
       ] as const)
         controls.setInput?.(action, false);
     };
   }, [controls, disabled]);
-  function steer(event: React.PointerEvent<HTMLButtonElement>) {
-    if (disabled || event.pointerId !== steeringPointer.current) return;
-    const offset = getSteeringOffset(
-      event.clientX,
-      event.clientY,
-      event.currentTarget.getBoundingClientRect(),
-      window.matchMedia('(pointer: coarse) and (orientation: portrait)')
-        .matches,
-    );
-    controls.setInput?.('moveForward', true);
-    controls.setInput?.('turnLeft', offset.turnLeft);
-    controls.setInput?.('turnRight', offset.turnRight);
-    setSteering({
-      x: offset.x,
-      y: offset.y,
-      forward: true,
-      left: offset.turnLeft,
-      right: offset.turnRight,
-    });
+  function publishMovement() {
+    const pointers = [...movementPointers.current.values()];
+    const next = {
+      moveForward: pointers.some((pointer) => pointer.forward),
+      turnLeft: pointers.some((pointer) => pointer.action === "turnLeft"),
+      turnRight: pointers.some((pointer) => pointer.action === "turnRight"),
+    };
+    for (const action of Object.keys(next) as MoveAction[])
+      controls.setInput?.(action, next[action]);
+    setMovement(next);
   }
-  function stopSteering(event: React.PointerEvent<HTMLButtonElement>) {
-    if (event.pointerId !== steeringPointer.current) return;
-    steeringPointer.current = null;
-    controls.setInput?.('moveForward', false);
-    controls.setInput?.('turnLeft', false);
-    controls.setInput?.('turnRight', false);
-    setSteering(idleSteering);
+  function slideMovement(event: React.PointerEvent<HTMLDivElement>) {
+    const pointer = movementPointers.current.get(event.pointerId);
+    if (!pointer || disabled) return;
+    const buttons = groupRef.current?.querySelectorAll<HTMLButtonElement>(
+      "button[data-move-action]",
+    );
+    if (!buttons) return;
+    for (const button of buttons) {
+      const rect = button.getBoundingClientRect();
+      if (
+        event.clientX >= rect.left &&
+        event.clientX <= rect.right &&
+        event.clientY >= rect.top &&
+        event.clientY <= rect.bottom
+      ) {
+        pointer.action = button.dataset.moveAction as MoveAction;
+        // Sliding from forward to a turn keeps thrust held until this finger lifts.
+        pointer.forward ||= pointer.action === "moveForward";
+        publishMovement();
+        break;
+      }
+    }
+  }
+  function releaseMovement(event: React.PointerEvent<HTMLDivElement>) {
+    if (!movementPointers.current.delete(event.pointerId)) return;
+    publishMovement();
   }
   function releaseAttack(event: React.PointerEvent<HTMLButtonElement>) {
     const action = attackPointers.current.get(event.pointerId);
@@ -80,45 +100,49 @@ export function TouchControls({
     setActiveAttacks([...attackPointers.current.values()]);
   }
   return (
-    <div className="touch-controls" aria-label="Ship controls">
-      <div className="touch-steering">
-        <button
-          type="button"
-          className="touch-steering__pad"
-          aria-label="Hold to move, slide left or right to turn"
-          aria-describedby="touch-steering-help"
-          aria-pressed={steering.forward}
-          disabled={disabled}
-          data-forward={steering.forward}
-          data-left={steering.left}
-          data-right={steering.right}
-          onPointerDown={(event) => {
-            if (steeringPointer.current !== null || disabled) return;
-            event.preventDefault();
-            steeringPointer.current = event.pointerId;
-            event.currentTarget.setPointerCapture(event.pointerId);
-            steer(event);
-          }}
-          onPointerMove={steer}
-          onPointerUp={stopSteering}
-          onPointerCancel={stopSteering}
-          onLostPointerCapture={stopSteering}
-          onContextMenu={(event) => event.preventDefault()}
-        >
-          <span className="touch-steering__arrows" aria-hidden="true">
-            ‹ ↑ ›
-          </span>
-          <span
-            className="touch-steering__thumb"
-            style={{ transform: `translate(${steering.x}px, ${steering.y}px)` }}
+    <div
+      className="touch-controls"
+      aria-label="Ship controls"
+      data-ui-silent="true"
+    >
+      <div
+        ref={groupRef}
+        className="touch-movement"
+        aria-label="Movement"
+        data-forward={movement.moveForward}
+        data-left={movement.turnLeft}
+        data-right={movement.turnRight}
+        onPointerMove={slideMovement}
+        onPointerUp={releaseMovement}
+        onPointerCancel={releaseMovement}
+        onLostPointerCapture={releaseMovement}
+      >
+        {movementButtons.map(({ action, label, icon }) => (
+          <button
+            key={action}
+            type="button"
+            className="round-button"
+            aria-label={label}
+            aria-pressed={movement[action]}
+            data-move-action={action}
+            disabled={disabled}
+            onPointerDown={(event) => {
+              event.preventDefault();
+              event.currentTarget.setPointerCapture(event.pointerId);
+              movementPointers.current.set(event.pointerId, {
+                action,
+                forward: action === "moveForward",
+              });
+              publishMovement();
+            }}
+            onContextMenu={(event) => event.preventDefault()}
           >
             <img
-              src={icons['../assets/png/default/ui/controls/icon_forward.png']}
+              src={icons[`../assets/png/default/ui/controls/icon_${icon}.png`]}
               alt=""
             />
-          </span>
-        </button>
-        <span id="touch-steering-help">HOLD TO SAIL · SLIDE TO TURN</span>
+          </button>
+        ))}
       </div>
       <div className="touch-attacks">
         {attacks.map(({ action, label, icon }) => (

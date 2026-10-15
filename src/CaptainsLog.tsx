@@ -1,15 +1,8 @@
 import * as React from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { getMatches } from './data/api';
 import { currentPlayer, pageSize, settingsKey } from './data/contracts';
 import { useMatchSync } from './data/MatchSync';
-import {
-  getScenario,
-  networkScenarios,
-  resetMockData,
-  setScenario,
-  type NetworkScenario,
-} from './data/mocks';
 import type { GameSettings } from './game/settings';
 export type LogTab = 'ranking' | 'history';
 export function CaptainsLog({
@@ -23,11 +16,9 @@ export function CaptainsLog({
 }) {
   const [tab, setTab] = React.useState(initialTab);
   const [page, setPage] = React.useState(1);
-  const [scenario, updateScenario] = React.useState(getScenario);
-  const queryClient = useQueryClient();
   const sync = useMatchSync();
   const query = useQuery({
-    queryKey: ['matches', tab, settingsKey(settings), page, scenario],
+    queryKey: ['matches', tab, settingsKey(settings), page],
     queryFn: ({ signal }) => getMatches(tab, page, settings, signal),
     retry: 1,
     refetchOnMount: 'always',
@@ -39,13 +30,6 @@ export function CaptainsLog({
   function changeTab(next: LogTab) {
     setTab(next);
     setPage(1);
-  }
-  function changeScenario(next: NetworkScenario) {
-    setScenario(next);
-    updateScenario(next);
-    if (next === 'success') sync.retry();
-    setPage(1);
-    void queryClient.invalidateQueries({ queryKey: ['matches'] });
   }
   return (
     <main className="menu-background">
@@ -201,35 +185,6 @@ export function CaptainsLog({
         >
           MAIN MENU
         </button>
-        <details className="network-demo">
-          <summary>Network demo</summary>
-          <label>
-            Scenario{' '}
-            <select
-              value={scenario}
-              onChange={(event) =>
-                changeScenario(event.target.value as NetworkScenario)
-              }
-            >
-              {networkScenarios.map((value) => (
-                <option key={value}>{value}</option>
-              ))}
-            </select>
-          </label>
-          <button
-            className="text-button"
-            onClick={() => {
-              if (
-                window.confirm('Reset mock battles and pending registrations?')
-              ) {
-                resetMockData();
-                window.location.reload();
-              }
-            }}
-          >
-            RESET DEMO DATA
-          </button>
-        </details>
       </section>
     </main>
   );

@@ -3,12 +3,12 @@
   padding: 24px;
   display: grid;
   place-items: center;
-  background: url('../assets/ui_scene_background.png') center/cover fixed;
+  background: url("../assets/ui_scene_background.png") center/cover fixed;
   color: #fff0cc;
 }
 .framed-panel,
 .pirate-dialog {
-  background: url('../assets/png/default/ui/menu/panel_menu.png') center/100%
+  background: url("../assets/png/default/ui/menu/panel_menu.png") center/100%
     100% no-repeat;
   color: #fff0cc;
   text-align: center;
@@ -60,7 +60,7 @@
   padding: 14px 24px;
   border: 0;
   background: transparent
-    url('../assets/png/default/ui/menu/button_primary_normal.png') center/100%
+    url("../assets/png/default/ui/menu/button_primary_normal.png") center/100%
     100% no-repeat;
   color: #38240b;
   font-weight: 700;
@@ -68,20 +68,20 @@
   cursor: pointer;
 }
 .gold-button:hover:not(:disabled) {
-  background-image: url('../assets/png/default/ui/menu/button_primary_hover.png');
+  background-image: url("../assets/png/default/ui/menu/button_primary_hover.png");
 }
 .gold-button:active:not(:disabled) {
-  background-image: url('../assets/png/default/ui/menu/button_primary_pressed.png');
+  background-image: url("../assets/png/default/ui/menu/button_primary_pressed.png");
 }
 .gold-button:disabled {
-  background-image: url('../assets/png/default/ui/menu/button_primary_disabled.png');
+  background-image: url("../assets/png/default/ui/menu/button_primary_disabled.png");
 }
 .secondary-button {
-  background-image: url('../assets/png/default/ui/menu/button_secondary_normal.png');
+  background-image: url("../assets/png/default/ui/menu/button_secondary_normal.png");
   color: #fff0cc;
 }
 .secondary-button:active {
-  background-image: url('../assets/png/default/ui/menu/button_secondary_pressed.png');
+  background-image: url("../assets/png/default/ui/menu/button_secondary_pressed.png");
 }
 .round-button {
   width: 48px;
@@ -95,7 +95,7 @@
   font-weight: 700;
   font-size: 26px;
   background: transparent
-    url('../assets/png/default/ui/controls/button_round_normal.png')
+    url("../assets/png/default/ui/controls/button_round_normal.png")
     center/contain no-repeat;
 }
 .round-button img {
@@ -104,10 +104,10 @@
   object-fit: contain;
 }
 .round-button:hover:not(:disabled) {
-  background-image: url('../assets/png/default/ui/controls/button_round_hover.png');
+  background-image: url("../assets/png/default/ui/controls/button_round_hover.png");
 }
 .round-button:active:not(:disabled) {
-  background-image: url('../assets/png/default/ui/controls/button_round_pressed.png');
+  background-image: url("../assets/png/default/ui/controls/button_round_pressed.png");
 }
 button:disabled {
   opacity: 0.5;
@@ -119,8 +119,8 @@ summary:focus-visible {
   outline: 3px solid #ffe49b;
   outline-offset: 4px;
 }
-h1[tabindex='-1'],
-h2[tabindex='-1'] {
+h1[tabindex="-1"],
+h2[tabindex="-1"] {
   outline: none;
 }
 .pirate-dialog {
@@ -407,63 +407,13 @@ body:has(.game-frame) {
   -webkit-user-select: none;
   -webkit-touch-callout: none;
 }
-.touch-steering {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-.touch-steering__pad {
-  position: relative;
-  width: 132px;
-  height: 96px;
-  border: 2px solid #bc8b40;
-  border-radius: 48%;
-  background: rgb(12 43 57 / 65%);
-  color: #ffe4a5;
-}
-.touch-steering__arrows {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  font-size: 36px;
-  letter-spacing: 10px;
-  opacity: 0.45;
-}
-.touch-steering__thumb {
-  position: absolute;
-  top: calc(50% - 25px);
-  left: calc(50% - 25px);
-  width: 50px;
-  height: 50px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: url('../assets/png/default/ui/controls/button_round_normal.png')
-    center/contain;
-  pointer-events: none;
-}
-.touch-steering__thumb img {
-  width: 24px;
-  height: 24px;
-}
-.touch-steering__pad[aria-pressed='true'] .touch-steering__thumb {
-  background-image: url('../assets/png/default/ui/controls/button_round_pressed.png');
-}
-.touch-steering > span {
-  color: #fff0cc;
-  font-size: 8px;
-  font-weight: 700;
-  text-shadow: 0 1px 3px #123;
-}
+.touch-movement,
 .touch-attacks {
   display: flex;
   gap: 8px;
-  padding-bottom: 14px;
 }
-.touch-attacks button[aria-pressed='true'] {
-  background-image: url('../assets/png/default/ui/controls/button_round_pressed.png');
+.touch-controls button[aria-pressed="true"] {
+  background-image: url("../assets/png/default/ui/controls/button_round_pressed.png");
 }
 @media (pointer: coarse) {
   .touch-controls {
@@ -532,4 +482,19 @@ body:has(.game-frame) {
 .game-hud__health-bar,
 .game-hud__heart {
   flex-shrink: 0;
+}
+
+.boost-indicator {
+  position: absolute;
+  top: 62px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 90%;
+  padding: 8px 14px;
+  color: #fff033;
+  background: #45340a;
+  border: 2px solid #ffd43d;
+  box-shadow: 0 0 12px rgb(255 212 61 / 35%);
+  font-weight: 700;
 }

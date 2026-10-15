@@ -23,8 +23,8 @@ export const spawnConfig = {
   minimumEnemyGap: 80,
   maxPositionAttempts: 20,
   chaserProbability: 0.5,
-  standardShooterProbability: 0.75,
-  healerShooterProbability: 0.2,
+  standardShooterProbability: 0.55,
+  healerShooterProbability: 0.3,
 };
 
 const largestEnemyRadius = Math.max(chaserConfig.radius, shooterConfig.radius);

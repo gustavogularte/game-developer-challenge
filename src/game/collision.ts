@@ -1,6 +1,7 @@
 export const collisionConfig = {
-  shipHullRadius: 66,
-  shoreClearance: 10,
+  // Use the physical hull rather than a circle around the entire ship sprite.
+  shipHullRadius: 32,
+  shoreClearance: 4,
   projectileRadius: 6,
 };
 export function getShipIslandRadius(): number {

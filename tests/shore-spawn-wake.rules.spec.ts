@@ -35,7 +35,11 @@ test('shore clearance adds a configurable water margin to the hull radius', () =
   expect(getShipIslandRadius()).toBe(
     collisionConfig.shipHullRadius + collisionConfig.shoreClearance,
   );
-  const point = { x: 430, y: 600 };
+  const point = {
+    x:
+      500 - collisionConfig.shipHullRadius - collisionConfig.shoreClearance / 2,
+    y: 600,
+  };
   expect(
     isCirclePathBlocked(
       point,
@@ -49,8 +53,18 @@ test('shore clearance adds a configurable water margin to the hull radius', () =
   ).toBe(true);
 });
 test('enemies keep moving when a stopped player is outside their shore clearance', () => {
-  const player = playerAt(434.5, 600);
-  expect(isCirclePathBlocked(player, player, 65.47, shoreline)).toBe(false);
+  const player = playerAt(
+    500 - collisionConfig.shipHullRadius - collisionConfig.shoreClearance / 2,
+    600,
+  );
+  expect(
+    isCirclePathBlocked(
+      player,
+      player,
+      collisionConfig.shipHullRadius,
+      shoreline,
+    ),
+  ).toBe(false);
   expect(
     isCirclePathBlocked(
       player,
@@ -140,4 +154,35 @@ test('spawn scheduling carries time across a long frame without changing the fir
   expect(
     updateEnemySpawning(state, player, [], 2, bounds, [], random, 3),
   ).toHaveLength(1);
+});
+
+test('ships approach within 40 units of shore without crossing the island', () => {
+  const approaching = { x: 460, y: 600 };
+  const tooClose = { x: 465, y: 600 };
+  const acrossIsland = { x: 1000, y: 600 };
+  expect(getShipIslandRadius()).toBe(36);
+  expect(
+    isCirclePathBlocked(
+      approaching,
+      approaching,
+      getShipIslandRadius(),
+      shoreline,
+    ),
+  ).toBe(false);
+  expect(
+    isCirclePathBlocked(
+      approaching,
+      tooClose,
+      getShipIslandRadius(),
+      shoreline,
+    ),
+  ).toBe(true);
+  expect(
+    isCirclePathBlocked(
+      approaching,
+      acrossIsland,
+      getShipIslandRadius(),
+      shoreline,
+    ),
+  ).toBe(true);
 });

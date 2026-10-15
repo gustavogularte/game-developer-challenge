@@ -1,3 +1,4 @@
+import { createCrewLayer } from './game/createCrewLayer';
 import { createPlayerFeedback } from './game/createPlayerFeedback';
 import { getShipIslandRadius } from './game/collision';
 import { getCameraTransform } from './game/camera';
@@ -290,6 +291,12 @@ export function GameCanvas({
       }
 
       world.addChildAt(islandLayer, 1);
+      const crew = await createCrewLayer();
+      if (cancelled) {
+        crew.container.destroy({ children: true });
+        return;
+      }
+      world.addChildAt(crew.container, 2);
 
       const playerView = await createShipView(playerImages);
 
@@ -637,6 +644,7 @@ export function GameCanvas({
               break;
             case 'enemyDestroyed':
               createDestructionEffect(event.x, event.y, event.points);
+              crew.spawn(event.x, event.y);
               gameAudio?.play('explosion');
               gameAudio?.play('enemySinking');
 
@@ -712,6 +720,7 @@ export function GameCanvas({
         unbindKeyboardInput?.();
         unbindKeyboardInput = undefined;
         gameAudio?.stop('ocean');
+        gameAudio?.stop('sailing');
         gameAudio?.stop('lowHealth');
         gameAudio?.play('gamePause');
         app.stop();
@@ -792,10 +801,20 @@ export function GameCanvas({
         );
 
         const healthBeforePickup = player.health;
+        if (healthBeforePickup < previousHealth) playerView.shakeOnDamage();
         collectHealthPickups(pickups, player, deltaSeconds);
         if (player.health > healthBeforePickup) playerFeedback.flashHealing();
         syncPickups();
         wake.update([player, ...enemies], deltaSeconds);
+        crew.update(deltaSeconds);
+        const playerMoved =
+          player.health > 0 &&
+          Math.hypot(
+            player.x - previousPlayerPosition.x,
+            player.y - previousPlayerPosition.y,
+          ) > 0;
+        if (playerMoved) gameAudio?.play('sailing');
+        else gameAudio?.stop('sailing');
         updateDestructionEffects(deltaSeconds);
         handleCombatEvents(combat.events);
         const boostSeconds = Math.ceil(combat.speedBoostSeconds);
@@ -827,6 +846,7 @@ export function GameCanvas({
           unbindKeyboardInput = undefined;
 
           gameAudio?.stop('ocean');
+          gameAudio?.stop('sailing');
           gameAudio?.stop('lowHealth');
 
           app.stop();

@@ -1,3 +1,4 @@
+import sailingUrl from '../../assets/sounds/ship_sailing_loop.wav';
 import frontShotUrl from '../../assets/sounds/cannon_fire_1.wav';
 import broadsideUrl from '../../assets/sounds/cannon_broadside.wav';
 import waterHitUrl from '../../assets/sounds/cannonball_water_hit_1.wav';
@@ -15,6 +16,7 @@ function soundUrl(name: string): string {
   return extraSoundUrls[`../../assets/sounds/${name}.wav`];
 }
 const sounds = {
+  sailing: { url: sailingUrl, volume: 0.025, loop: true },
   gameStart: { url: soundUrl('game_start'), volume: 0.45, loop: false },
   gameOver: { url: soundUrl('game_over'), volume: 0.5, loop: false },
   gameComplete: { url: soundUrl('game_complete'), volume: 0.5, loop: false },

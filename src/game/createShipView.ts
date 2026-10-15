@@ -7,6 +7,12 @@ import fireTwoImageUrl from '../../assets/png/default/effects/fire_2.png';
 
 type ShipImages = Record<HealthStage, string>;
 
+export const damageShakeConfig = {
+  durationSeconds: 0.18,
+  amplitudePixels: 2.5,
+  frequency: 24,
+};
+
 export async function createShipView(images: ShipImages) {
   const [green, amber, red, dead, fireOneTexture, fireTwoTexture] =
     await Promise.all([
@@ -44,9 +50,26 @@ export async function createShipView(images: ShipImages) {
   container.addChild(sprite, fireOne, fireTwo);
 
   let elapsedSeconds = 0;
+  let previousHealth: number | undefined;
+  let shakeRemainingSeconds = 0;
+
+  function shakeOnDamage(): void {
+    shakeRemainingSeconds = damageShakeConfig.durationSeconds;
+  }
 
   function update(health: HealthState, deltaSeconds: number): void {
+    if (previousHealth !== undefined && health.health < previousHealth)
+      shakeOnDamage();
+    previousHealth = health.health;
     elapsedSeconds += deltaSeconds;
+    shakeRemainingSeconds = Math.max(0, shakeRemainingSeconds - deltaSeconds);
+    const strength = shakeRemainingSeconds / damageShakeConfig.durationSeconds;
+    const phase = elapsedSeconds * Math.PI * 2 * damageShakeConfig.frequency;
+    // Pivot affects only presentation: simulation coordinates and hitboxes stay stable.
+    container.pivot.set(
+      Math.sin(phase) * damageShakeConfig.amplitudePixels * strength,
+      Math.cos(phase) * damageShakeConfig.amplitudePixels * strength,
+    );
 
     const stage = getHealthStage(health);
 
@@ -60,5 +83,5 @@ export async function createShipView(images: ShipImages) {
     fireTwo.scale.set(1 + Math.sin(elapsedSeconds * 17 + 1) * 0.08);
   }
 
-  return { sprite, container, update };
+  return { sprite, container, update, shakeOnDamage };
 }

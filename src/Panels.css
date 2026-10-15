@@ -447,7 +447,8 @@ body:has(.game-frame) {
   .game-frame .game-hud .round-button {
     width: 44px;
     height: 44px;
-    flex-basis: 44px;
+    flex: 0 0 44px;
+    padding: 10px;
   }
 }
 

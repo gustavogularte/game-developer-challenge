@@ -1,75 +1,198 @@
 # Pirate Battle
 
-A local single-player naval game built with React, TypeScript and PixiJS. Ranking and personal match history use Axios, TanStack Query and MSW in development and production.
+<p align="center">
+  <img src="assets/png/default/ui/menu/title_pirate_battle.png" alt="Pirate Battle" width="360" />
+</p>
 
-## Run
+**Batalha naval 2D no navegador, com combate em tempo real, navegação entre ilhas e controles para desktop e mobile.**
 
-Use Node.js 22.12+ and pnpm.
+Desenvolvido a partir do [desafio técnico da Jungle Gaming](https://github.com/junglegaming/game-developer-challenge), o projeto combina React, TypeScript e PixiJS. O jogador comanda um navio pirata, enfrenta inimigos com comportamentos diferentes e tenta sobreviver até o fim da partida, somando pontos por cada inimigo derrotado.
 
-```sh
+O foco foi construir uma experiência jogável e organizada: movimentação com aceleração, tiros frontais e laterais, obstáculos navegáveis, feedback visual e sonoro e integração de ranking e histórico por uma API simulada.
+
+[Repositório da solução](https://github.com/gustavogularte/game-developer-challenge) · [Decisões de arquitetura](ARCHITECTURE.md)
+
+## Como executar
+
+**Pré-requisitos:** Node.js 22.12 ou superior e pnpm disponível no terminal.
+
+```bash
+git clone https://github.com/gustavogularte/game-developer-challenge.git
+cd game-developer-challenge
 pnpm install
 pnpm dev
 ```
 
-No environment variables or private services are required. Open the HTTP address shown by Vite; service workers require localhost or HTTPS.
+Abra o endereço informado pelo Vite no terminal, normalmente `http://localhost:5173`.
 
-## Controls
+**Não é necessário configurar variáveis de ambiente, credenciais ou um servidor separado.** O MSW intercepta as requisições da aplicação e simula a API no navegador, tanto em desenvolvimento quanto no build publicado. O service worker precisa de `localhost` ou HTTPS para funcionar.
 
-- W / Arrow Up: move forward with acceleration.
-- A / Arrow Left, D / Arrow Right: rotate.
-- Space: front cannon. Q / E: left / right broadsides.
-- Escape or the HUD pause button: pause.
-- On mobile, hold the forward icon to sail and slide onto the left/right turn icons to turn while moving. Use a second finger on the separate fire buttons. Gameplay uses landscape: the app requests fullscreen and orientation lock where supported, with a CSS landscape fallback if the browser refuses.
-- Losing focus or hiding the tab pauses automatically. Resume requires an explicit action.
+Para gerar e visualizar a versão de produção:
 
-## Options and rules
+```bash
+pnpm build
+pnpm preview
+```
 
-Match duration: 60, 120 or 180 active seconds. Enemy spawn interval: integer seconds from 1 to 10. The first enemy is scheduled after one active second; subsequent spawns use the configured interval. If no safe first spawn position is available, the next frame retries without waiting a full interval. Options persist locally; each battle copies the settings when it starts. Changing Options while paused affects the next battle.
+## Tecnologias e responsabilidades
 
-Every enemy destroyed by the player awards exactly one point. Chaser contact explosions award zero points. Spawns choose Chaser or Shooter randomly with equal probability. Among Shooters, the weights are 55% standard, 30% healer, 15% speed reward. Random selection does not guarantee both enemy types in every individual battle.
+| Tecnologia     | Uso no projeto                                                                  |
+| -------------- | ------------------------------------------------------------------------------- |
+| React 19       | Telas, menu, opções, HUD e diálogos de pausa e resultado.                       |
+| TypeScript     | Contratos de dados, estados das entidades e regras de gameplay.                 |
+| PixiJS 8       | Renderização do mundo, sprites, câmera e efeitos visuais.                       |
+| Vite           | Servidor de desenvolvimento e build da aplicação.                               |
+| CSS            | Interface responsiva, estados dos botões e composição com os assets fornecidos. |
+| Axios          | Cliente HTTP centralizado para ranking, histórico e registro de partidas.       |
+| TanStack Query | Cache, consultas, mutações e atualização das listas após o registro.            |
+| MSW            | API simulada no navegador e cenários reproduzíveis de falha.                    |
+| Web Audio API  | Reprodução de efeitos sonoros e loops de ambiente e navegação.                  |
+| localStorage   | Opções, partidas confirmadas e fila de registros pendentes.                     |
+| Playwright     | Testes de regras e fluxos de interface em desktop e mobile emulado.             |
+| ESLint         | Verificações estáticas e regras de uso do React.                                |
 
-Healer ships leave wood that restores 25 HP when collected, capped at maximum HP. Wood lasts 20 active seconds. Rare yellow ships grant 50% faster newly fired projectiles for five active seconds. Damage, range and cooldown remain unchanged. Another reward refreshes the duration without stacking the multiplier. Pausing freezes the bonus.
+## Como jogar
 
-## Ranking, history and persistence
+Desvie das ilhas, escolha o ângulo de ataque e use os canhões laterais para atingir inimigos fora da sua linha frontal. A partida termina quando a vida chega a zero ou quando o tempo acaba.
 
-Captain Jack is the local player. Other captains are deterministic fixtures. History contains only completed matches belonging to the local player. Ranking compares duration, spawn interval and the gameplay rules version. Ties use completion date ascending, then match ID ascending. Results are paginated five per page.
+| Ação                   | Teclado                        |
+| ---------------------- | ------------------------------ |
+| Avançar                | `W` ou `↑`                     |
+| Virar à esquerda       | `A` ou `←`                     |
+| Virar à direita        | `D` ou `→`                     |
+| Tiro frontal           | `Espaço`                       |
+| Salva lateral esquerda | `Q`                            |
+| Salva lateral direita  | `E`                            |
+| Pausar                 | `Esc` ou botão de pausa do HUD |
 
-The result and pending registration are stored before submitting through a TanStack Query mutation. Requests use the match ID as the idempotency key. MSW stores confirmed records and returns an existing record on retry. Pending records survive refresh and can be retried from the result or Captain’s Log. Starting another battle remains available while a previous record is pending. An abandoned battle is not registered. The last completed result remains stored after refresh, but the menu opens without automatically displaying the result dialog.
+**No mobile:** use os botões de movimento e ataque. Ao segurar o avanço e deslizar para uma seta lateral, o navio continua avançando enquanto vira. Também é possível movimentar e atirar com dedos diferentes. O jogo solicita orientação horizontal quando o navegador permite e usa uma adaptação visual em paisagem quando necessário.
 
-## Network testing (no player-facing controls)
+Trocar de aba ou tirar o foco da janela pausa a partida. O retorno ao combate exige uma ação explícita em **RESUME**.
 
-Normal URLs always use the success scenario. Old failure settings in local storage are ignored, so they cannot leave the game stuck in a simulated outage. Ranking and Match History have no Network demo panel, scenario selector or reset button.
+### Configuração da partida
 
-For reproducible tests, explicitly open a URL with `?network=SCENARIO`, for example `http://localhost:5173/?network=timeoutAfterCommit`. Remove the parameter and reload to return to normal operation. This also works on the deployed HTTPS URL. Pending battles are retried on startup; confirmed records are preserved.
+| Opção                    | Valores disponíveis                        |
+| ------------------------ | ------------------------------------------ |
+| Duração                  | 60, 120 ou 180 segundos                    |
+| Intervalo entre inimigos | De 1 a 10 segundos, em passos de 1 segundo |
 
-Supported scenarios: success, empty, slow (2.5 seconds), variable (alternating 1.8 seconds / 100 ms), timeout, offline, http400, http500, rankingError, historyError, timeoutAfterCommit and registrationOffline. Axios times out after four seconds. Timeout-after-commit writes once before delaying its response; retry returns the existing record.
+O primeiro inimigo pode surgir após **1 segundo de jogo ativo**; os seguintes respeitam o intervalo escolhido. O spawn procura posições seguras, afastadas do jogador, de outros inimigos e das ilhas. Há um limite de oito inimigos vivos simultaneamente.
 
-Only for resetting test data, explicitly open `?resetMocks=1`. This clears confirmed mock matches, pending submissions and the last result, preserves Options and removes the reset parameter after running. Ordinary navigation never resets data.
+As opções são salvas localmente. Cada partida usa uma cópia das configurações do início: alterações feitas durante a pausa passam a valer na próxima partida. A pausa também congela o cronômetro, os projéteis e a duração dos bônus.
 
-## Checks
+## Inimigos e recompensas
 
-```sh
+| Inimigo               | Comportamento                                                                    | Recompensa                                                                   |
+| --------------------- | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Chaser                | Tem menos vida, persegue o jogador e se destrói ao encostar nele, causando dano. | 1 ponto quando derrotado pelo jogador; nenhum ponto ao explodir por contato. |
+| Shooter padrão        | Mantém distância e dispara quando está alinhado e tem linha de tiro livre.       | 1 ponto.                                                                     |
+| Shooter de cura       | Usa o comportamento do Shooter e deixa madeira coletável ao morrer.              | 1 ponto e recuperação de até 25 de vida ao coletar a madeira.                |
+| Shooter de velocidade | Variante mais rara, identificada pelo navio amarelo.                             | 1 ponto e projéteis novos 50% mais rápidos por 5 segundos.                   |
+
+Chasers e Shooters têm a mesma probabilidade de seleção. **Entre os Shooters**, a distribuição é 55% padrão, 30% cura e 15% velocidade. A escolha é aleatória; não existe uma sequência alternada obrigatória.
+
+A cura respeita a vida máxima, e a madeira desaparece após 20 segundos ativos. O bônus de velocidade não altera dano, alcance ou intervalo entre disparos; receber outro bônus renova seus cinco segundos, sem acumular multiplicadores.
+
+## Ideias exploradas no projeto
+
+- **Sensação de navegação:** aceleração e desaceleração graduais, rastro de água e som suave enquanto o barco realmente se desloca.
+- **Combate com posicionamento:** um canhão frontal e duas salvas laterais incentivam manobras e escolhas de aproximação.
+- **Inimigos especiais sem pontuação inflada:** todos os abates do jogador valem um ponto. As variantes acrescentam decisões de cura e de aproveitamento de um bônus temporário.
+- **Dano legível:** os sprites dos navios mudam conforme a vida, surgem efeitos de fogo e o casco treme levemente ao receber dano. A cura faz o jogador piscar verde; o bônus mantém um brilho amarelo enquanto ativo.
+- **Consequências visuais do combate:** explosão, efeito de pontuação e três tripulantes na água após cada inimigo morrer. Eles se movimentam suavemente e encolhem antes de desaparecer em dois segundos ativos.
+- **Ilhas com identidade:** praias irregulares, ruínas, grupos de vegetação e formações rochosas, preservando corredores de água para manobrar e combater.
+- **Controles por toque combináveis:** manter o avanço ao deslizar para uma curva permite navegar e atacar sem exigir um dedo para cada ação.
+
+## Decisões técnicas
+
+**React para interface, PixiJS para o combate.** Posições e projéteis são atualizados na simulação, fora do estado do React. O HUD recebe mudanças relevantes de vida, pontuação e tempo, evitando reconstruir a interface a cada frame.
+
+**Movimento por tempo decorrido.** Velocidades são aplicadas usando o delta em segundos, em vez de deslocamentos fixos por frame. Isso reduz a dependência da movimentação em relação à taxa de quadros.
+
+**Colisões consistentes com o cenário.** O desenho e a colisão das ilhas usam o mesmo contorno arredondado. As verificações de trajetória dos projéteis consideram o segmento percorrido entre frames, reduzindo o risco de atravessar alvos rápidos. O impacto consome o projétil.
+
+**Navegação ao redor de obstáculos.** Os inimigos usam rotas A* em uma grade compartilhada quando uma ilha bloqueia o caminho direto. Shooters verificam a linha de tiro antes de disparar.
+
+**Efeitos separados das regras.** Eventos de combate acionam sons, explosões e recompensas na cena. A tremida visual não altera posições nem hitboxes. Objetos temporários são removidos ao encerrar seus efeitos.
+
+**Registro tolerante a falhas.** Uma partida concluída é persistida antes do envio. O identificador da partida funciona como chave de idempotência: repetir uma requisição recupera o registro existente. Uma falha na API não impede iniciar outro combate.
+
+Mais detalhes estão em [ARCHITECTURE.md](ARCHITECTURE.md).
+
+### Organização do código
+
+```text
+src/
+  App.tsx                 Navegação entre as telas
+  GameScreen.tsx          Estado e ciclo de uma partida
+  GameCanvas.tsx          Integração da simulação com o PixiJS
+  GameHud.tsx             Interface durante o combate
+  TouchControls.tsx       Entrada por toque
+  game/                   Regras, navegação, colisões e fábricas visuais
+  data/                   Contratos, cliente HTTP, mocks e sincronização
+tests/                    Regras e fluxos automatizados
+assets/                   Sprites, tiles e sons
+public/                   Service worker do MSW
+```
+
+## Ranking e histórico
+
+O histórico exibe apenas as partidas concluídas do jogador local, **Captain Jack**. O ranking combina seus registros com outros capitães fictícios fornecidos por fixtures. Ambos usam paginação de cinco resultados por página.
+
+A comparação do ranking considera duração, intervalo de spawn e versão das regras. Empates de pontuação são resolvidos pela data de conclusão e pelo identificador da partida, mantendo uma ordem determinística.
+
+Os dados ficam neste navegador. **Este é um ranking simulado, não um serviço online compartilhado entre jogadores.** Atualizar a página preserva registros e opções, mas abre o menu inicial. Partidas abandonadas não entram no histórico.
+
+## Verificação e testes
+
+```bash
 pnpm typecheck
 pnpm lint
 pnpm exec playwright install chromium
 pnpm test:e2e
 pnpm test:e2e:report
-pnpm build
-pnpm preview
 ```
 
-The included tests cover rules and desktop/mobile flows for Options, pause, network recovery, pagination, result restoration and registration idempotency. They are a focused suite, not complete coverage of every challenge acceptance criterion. HTML reports are generated in playwright-report; failure traces are retained.
+Para executar apenas um grupo:
 
-## Deployment
+```bash
+pnpm test:e2e --project=rules
+pnpm test:e2e --project=desktop
+pnpm test:e2e --project=mobile
+```
 
-Use the Vite preset, `pnpm build`, and output directory `dist` on a static HTTPS host. Commit `public/mockServiceWorker.js`; mocks start in production too. This archive does not include a deployment URL.
+A suíte cobre regras de combate e recompensas, navegação ao redor das ilhas, spawn, câmera, opções, pausa, controles simultâneos, paginação, recuperação de registros, idempotência e efeitos temporários. O Playwright inicia o servidor de teste automaticamente e gera um relatório HTML em `playwright-report/`; falhas retêm traces para investigação.
 
-## Remaining delivery work
+**Roteiro rápido para avaliar:** inicie uma partida de 60 segundos; experimente tiros frontais e laterais; atraia inimigos para perto de uma ilha; pause e retome; ao terminar, consulte o histórico e o ranking.
 
-The full challenge still needs gameplay E2E coverage through real combat inputs, versioned visual regression baselines, three-minute performance profiling and five-cycle memory measurements. Desktop/mobile browser emulation does not replace verification on a physical phone, especially fullscreen and operating-system orientation locking. Audio playback still needs a listening check on the target devices. Enemies use cached A\* routes to navigate around islands, with swept collision checks on every movement segment.
+<details>
+<summary><strong>Reproduzir falhas da API simulada</strong></summary>
 
-Assets are supplied by the challenge. No external fonts were added; the interface uses system monospace fonts.
+Os cenários são selecionados pela URL, sem controles de diagnóstico na interface do jogador. Por exemplo:
 
-Ship/island collision uses a shared hull radius plus a 10-world-unit shore clearance, configured in `src/game/collision.ts`. Navigation projects shoreline targets onto a safe approach point when the enemy cannot occupy the player’s exact center. Projectile line of sight uses projectile clearance rather than ship clearance. Water wakes are distance-based, fade after stopping and have a fixed resource cap.
+```text
+http://localhost:5173/?network=offline
+http://localhost:5173/?network=timeoutAfterCommit
+```
 
-Healing flashes the player green. The projectile-speed bonus adds a soft yellow glow while active. Mobile movement and attack buttons do not play UI click or hover sounds; cannon audio remains enabled.
+Os valores disponíveis são `success`, `empty`, `slow`, `variable`, `timeout`, `offline`, `http400`, `http500`, `rankingError`, `historyError`, `timeoutAfterCommit` e `registrationOffline`.
+
+Para verificar recuperação sem duplicação, conclua uma partida em `timeoutAfterCommit`, remova o parâmetro e recarregue a página. O registro pendente é reenviado usando o mesmo identificador. Confira o histórico após a sincronização. O timeout do cliente HTTP é de quatro segundos.
+
+Para voltar ao comportamento normal, remova `network` da URL e recarregue. Para restaurar os dados iniciais dos mocks, abra explicitamente `http://localhost:5173/?resetMocks=1`. Esse reset apaga partidas confirmadas, envios pendentes e o último resultado, preserva as opções e remove o próprio parâmetro da URL.
+
+No preview ou em um deploy, utilize a origem correspondente no lugar de `localhost:5173`.
+
+</details>
+
+## Publicação e próximos passos
+
+O build estático é gerado em `dist/` e pode ser hospedado em um serviço HTTPS com suporte a Vite. O arquivo `public/mockServiceWorker.js` deve acompanhar a publicação para que ranking e histórico funcionem. Nenhuma variável de ambiente é necessária.
+
+Os próximos passos de validação são ampliar os testes de gameplay por entradas reais de combate, adicionar baselines de regressão visual e registrar medições de FPS, tempo entre frames e memória após ciclos de partidas. A emulação mobile não substitui a verificação em dispositivos físicos; orientação, tela cheia e áudio também dependem do navegador.
+
+## Autoria e créditos
+
+Solução desenvolvida por [gustavogularte](https://github.com/gustavogularte) para o desafio da [Jungle Gaming](https://github.com/junglegaming/game-developer-challenge).
+
+Os assets visuais e sonoros usados no jogo foram fornecidos pelo repositório do desafio. A interface utiliza fontes monospace do sistema, sem download de fontes externas.

@@ -43,6 +43,7 @@ export function CaptainsLog({
   function changeScenario(next: NetworkScenario) {
     setScenario(next);
     updateScenario(next);
+    if (next === "success") sync.retry();
     setPage(1);
     void queryClient.invalidateQueries({ queryKey: ["matches"] });
   }
@@ -73,7 +74,8 @@ export function CaptainsLog({
         </p>
         {sync.pending.length > 0 && (
           <div className="registration-status" role="status">
-            {sync.pending.length} battle(s) pending registration.{" "}
+            {sync.pending.length} battle(s) saved locally.{" "}
+            {sync.syncing ? "Syncing…" : "Ready to sync."}{" "}
             <button
               className="text-button"
               disabled={sync.syncing}
@@ -81,6 +83,7 @@ export function CaptainsLog({
             >
               RETRY
             </button>
+            {sync.error && <p>{sync.error}</p>}
           </div>
         )}
         {query.isPending ? (

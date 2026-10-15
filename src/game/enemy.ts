@@ -1,3 +1,4 @@
+import { getNavigationTarget } from "./navigation";
 import { applyDamage, type HealthState } from "./health";
 import type { PlayerState } from "./player";
 import { isCirclePathBlocked, type IslandCollider } from "./islandGeometry";
@@ -117,15 +118,26 @@ export function updateChaser(
 
   if (player.health <= 0) return false;
 
-  const dx = player.x - enemy.x;
-  const dy = player.y - enemy.y;
+  const target = getNavigationTarget(
+    enemy,
+    player,
+    enemyConfig.islandCollisionRadius,
+    islandColliders,
+    deltaSeconds,
+  );
+  const dx = target.x - enemy.x;
+  const dy = target.y - enemy.y;
   const distance = Math.hypot(dx, dy);
   const contactDistance = enemy.radius + playerRadius;
+  const isDirectCourse = target === player;
 
   if (distance > 0) {
     enemy.rotation = Math.atan2(dx, -dy);
 
-    const availableDistance = Math.max(0, distance - contactDistance);
+    const availableDistance = Math.max(
+      0,
+      distance - (isDirectCourse ? contactDistance : 0),
+    );
     const movement = Math.min(
       chaserConfig.moveSpeed * deltaSeconds,
       availableDistance,
@@ -184,50 +196,61 @@ export function updateShooter(
     enemy.shotCooldownSeconds - deltaSeconds,
   );
 
-  const dx = player.x - enemy.x;
-  const dy = player.y - enemy.y;
+  const target = getNavigationTarget(
+    enemy,
+    player,
+    enemyConfig.islandCollisionRadius,
+    islandColliders,
+    deltaSeconds,
+  );
+  const dx = target.x - enemy.x;
+  const dy = target.y - enemy.y;
   const distance = Math.hypot(dx, dy);
-
   if (distance === 0) return false;
 
   const targetRotation = Math.atan2(dx, -dy);
-  const angleDifference = getAngleDifference(targetRotation, enemy.rotation);
   const maxTurn = shooterConfig.rotationSpeed * deltaSeconds;
-
+  const angleDifference = getAngleDifference(targetRotation, enemy.rotation);
   enemy.rotation += Math.max(-maxTurn, Math.min(maxTurn, angleDifference));
+  const alignedWithCourse =
+    Math.abs(getAngleDifference(targetRotation, enemy.rotation)) <=
+    shooterConfig.attackAlignmentTolerance;
+  if (alignedWithCourse) {
+    const stoppingDistance =
+      target === player ? shooterConfig.preferredDistance : 0;
+    const movement = Math.min(
+      shooterConfig.moveSpeed * deltaSeconds,
+      Math.max(0, distance - stoppingDistance),
+    );
+    moveEnemyIfPathIsClear(
+      enemy,
+      {
+        x: enemy.x + (dx / distance) * movement,
+        y: enemy.y + (dy / distance) * movement,
+      },
+      islandColliders,
+    );
+  }
 
-  const remainingAngle = getAngleDifference(targetRotation, enemy.rotation);
-  const isAimingAtPlayer =
-    Math.abs(remainingAngle) <= shooterConfig.attackAlignmentTolerance;
-
-  if (!isAimingAtPlayer) return false;
-
-  const availableDistance = Math.max(
-    0,
-    distance - shooterConfig.preferredDistance,
-  );
-  const movement = Math.min(
-    shooterConfig.moveSpeed * deltaSeconds,
-    availableDistance,
-  );
-
-  moveEnemyIfPathIsClear(
+  const playerDx = player.x - enemy.x,
+    playerDy = player.y - enemy.y;
+  const playerAngle = Math.atan2(playerDx, -playerDy);
+  const aimingAtPlayer =
+    Math.abs(getAngleDifference(playerAngle, enemy.rotation)) <=
+    shooterConfig.attackAlignmentTolerance;
+  const hasLineOfSight = !isCirclePathBlocked(
     enemy,
-    {
-      x: enemy.x + Math.sin(enemy.rotation) * movement,
-      y: enemy.y - Math.cos(enemy.rotation) * movement,
-    },
+    player,
+    enemyConfig.islandCollisionRadius,
     islandColliders,
   );
-
-  const currentDistance = Math.hypot(player.x - enemy.x, player.y - enemy.y);
-
   if (
-    currentDistance > shooterConfig.attackRange ||
+    !aimingAtPlayer ||
+    !hasLineOfSight ||
+    Math.hypot(playerDx, playerDy) > shooterConfig.attackRange ||
     enemy.shotCooldownSeconds > 0
-  ) {
+  )
     return false;
-  }
 
   enemy.shotCooldownSeconds = shooterConfig.shotCooldownSeconds;
   return true;

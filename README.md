@@ -34,7 +34,7 @@ Healer ships leave wood that restores 25 HP when collected, capped at maximum HP
 
 Captain Jack is the local player. Other captains are deterministic fixtures. History contains only completed matches belonging to the local player. Ranking compares duration, spawn interval and the gameplay rules version. Ties use completion date ascending, then match ID ascending. Results are paginated five per page.
 
-The result and pending registration are stored before submitting through a TanStack Query mutation. Requests use the match ID as the idempotency key. MSW stores confirmed records and returns an existing record on retry. Pending records survive refresh and can be retried from the result or Captain’s Log. Starting another battle remains available while a previous record is pending. An abandoned battle is not registered. The last completed result is restored after refresh.
+The result and pending registration are stored before submitting through a TanStack Query mutation. Requests use the match ID as the idempotency key. MSW stores confirmed records and returns an existing record on retry. Pending records survive refresh and can be retried from the result or Captain’s Log. Starting another battle remains available while a previous record is pending. An abandoned battle is not registered. The last completed result remains stored after refresh, but the menu opens without automatically displaying the result dialog.
 
 ## Network demo
 
@@ -62,6 +62,6 @@ Use the Vite preset, `pnpm build`, and output directory `dist` on a static HTTPS
 
 ## Remaining delivery work
 
-The full challenge still needs gameplay E2E coverage through real combat inputs, versioned visual regression baselines, three-minute performance profiling and five-cycle memory measurements. Desktop/mobile browser emulation does not replace verification on a physical phone. Audio playback still needs a listening check on the target devices. Enemy movement stops when an island blocks its path; no pathfinding around islands is implemented.
+The full challenge still needs gameplay E2E coverage through real combat inputs, versioned visual regression baselines, three-minute performance profiling and five-cycle memory measurements. Desktop/mobile browser emulation does not replace verification on a physical phone. Audio playback still needs a listening check on the target devices. Enemies use cached A* routes to navigate around islands, with swept collision checks on every movement segment.
 
 Assets are supplied by the challenge. No external fonts were added; the interface uses system monospace fonts.

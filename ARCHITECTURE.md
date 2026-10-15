@@ -10,7 +10,7 @@ The game advances using ticker delta seconds. Continuous position and projectile
 
 The simulation uses a fixed 2400 x 1350 arena. The world container scales uniformly to fit the browser and is centered. Water also fills the space outside the playable world. Those outer water areas are decorative; the ship remains within the fixed arena bounds.
 
-Rounded island outlines are shared by rendering and collision. Swept segment checks prevent fast projectiles crossing targets or islands between frames. Each projectile is removed after its first impact. Ship collision uses conservative circular bounds; blocked movement is restored rather than resolved with a physics engine. Shooter rotation uses the shortest angle and a limited turn speed.
+Rounded island outlines are shared by rendering and collision. Swept segment checks prevent fast projectiles crossing targets or islands between frames. Each projectile is removed after its first impact. Ship collision uses conservative circular bounds; blocked movement is restored rather than resolved with a physics engine. Shooter rotation uses the shortest angle and a limited turn speed. When terrain blocks a direct course, both enemy types use A* over a shared navigation grid, cached per collider set and collision radius. Grid edges and smoothed route segments use swept-circle clearance checks; routes are refreshed periodically as the player moves. Shooters fire only with clear line of sight.
 
 ## Input, pause and lifetime
 
@@ -34,4 +34,4 @@ The two exposed Options fields form the runtime settings snapshot. Fixed gamepla
 
 ## Tradeoffs
 
-No ECS, state-machine library or physics engine was added. Containers group sprites and fire effects, avoiding child sprites on Pixi leaf objects. Wakes have a hard entity cap and finite lifetime. Island pathfinding, cross-tab transactional storage coordination, comprehensive profiling and the full challenge E2E/visual suite are outside this update. System fonts avoid another asset dependency. Local storage is suitable for a demonstrable mock backend, not a trusted leaderboard.
+No ECS, state-machine library or physics engine was added. Containers group sprites and fire effects, avoiding child sprites on Pixi leaf objects. Wakes have a hard entity cap and finite lifetime. Cross-tab transactional storage coordination, comprehensive profiling and the full challenge E2E/visual suite are outside this update. System fonts avoid another asset dependency. Local storage is suitable for a demonstrable mock backend, not a trusted leaderboard.

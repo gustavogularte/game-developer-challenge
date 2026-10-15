@@ -3,10 +3,6 @@ import { MainMenu } from "./MainMenu";
 import { GameScreen } from "./GameScreen";
 import { OptionsPanel } from "./OptionsPanel";
 import { CaptainsLog } from "./CaptainsLog";
-import { MatchResultDialog } from "./MatchResultDialog";
-import { RegistrationStatus } from "./data/MatchSync";
-import { readStored, storageKeys } from "./data/storage";
-import type { MatchRecord } from "./data/contracts";
 import { loadSettings } from "./game/settings";
 import { playUiSound, unlockAudio, type SoundName } from "./game/audio";
 import "./Panels.css";
@@ -14,16 +10,11 @@ type Screen = "menu" | "game" | "options" | "ranking" | "history";
 function App() {
   const [screen, setScreen] = React.useState<Screen>("menu");
   const [settings, setSettings] = React.useState(loadSettings);
-  const [lastResult, setLastResult] = React.useState(() =>
-    readStored<MatchRecord | null>(storageKeys.lastResult, null),
-  );
   function startGame() {
     void unlockAudio().catch(() => {});
-    setLastResult(null);
     setScreen("game");
   }
   function returnToMenu() {
-    setLastResult(null);
     setScreen("menu");
   }
   function uiSound(event: React.MouseEvent<HTMLDivElement>) {
@@ -41,7 +32,10 @@ function App() {
         if (
           button &&
           !button.disabled &&
-          !(event.relatedTarget instanceof Node && button.contains(event.relatedTarget)) &&
+          !(
+            event.relatedTarget instanceof Node &&
+            button.contains(event.relatedTarget)
+          ) &&
           navigator.userActivation?.hasBeenActive
         )
           playUiSound("uiHover");
@@ -78,14 +72,6 @@ function App() {
           initialTab={screen}
           settings={settings}
           onBack={returnToMenu}
-        />
-      )}
-      {lastResult && screen === "menu" && (
-        <MatchResultDialog
-          result={lastResult}
-          onPlayAgain={startGame}
-          onMainMenu={returnToMenu}
-          registration={<RegistrationStatus id={lastResult.id} />}
         />
       )}
     </div>

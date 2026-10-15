@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { registerMatch } from "./api";
 import { acknowledgeMatch, getPending, queueMatch } from "./storage";
 import type { MatchRecord } from "./contracts";
+
 interface SyncContextValue {
   pending: MatchRecord[];
   syncing: boolean;
@@ -19,9 +20,10 @@ export function useMatchSync() {
 export function MatchSyncProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const [pending, setPending] = React.useState(getPending);
+  const [syncing, setSyncing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const running = React.useRef(false);
-  const transient = React.useRef<MatchRecord[]>([]);
+  const transient = React.useRef(new Map<string, MatchRecord>());
   const mutation = useMutation({
     mutationFn: registerMatch,
     retry: 1,
@@ -31,28 +33,51 @@ export function MatchSyncProvider({ children }: { children: React.ReactNode }) {
   const retry = React.useCallback(() => {
     if (running.current) return;
     running.current = true;
+    setSyncing(true);
     setError(null);
     void (async () => {
+      const attempted = new Set<string>();
+      let confirmedAny = false;
       try {
-        const records = new Map(
-          [...getPending(), ...transient.current].map((record) => [
-            record.id,
-            record,
-          ]),
-        );
-        for (const record of records.values()) {
-          await mutateAsync(record);
-          acknowledgeMatch(record.id);
-          transient.current = transient.current.filter(
-            (item) => item.id !== record.id,
+        // Re-read after each request: a new battle may finish while this queue is draining.
+        while (true) {
+          const records = new Map(
+            [...getPending(), ...transient.current.values()].map((record) => [
+              record.id,
+              record,
+            ]),
           );
-          setPending([...getPending(), ...transient.current]);
-          await queryClient.invalidateQueries({ queryKey: ["matches"] });
+          const record = [...records.values()].find(
+            (item) => !attempted.has(item.id),
+          );
+          if (!record) break;
+          attempted.add(record.id);
+          try {
+            await mutateAsync(record);
+            acknowledgeMatch(record.id);
+            transient.current.delete(record.id);
+            confirmedAny = true;
+          } catch {
+            setError(
+              "Could not sync some battles. Check your connection or the Network demo scenario and try again.",
+            );
+          }
+          setPending([
+            ...new Map(
+              [...getPending(), ...transient.current.values()].map((item) => [
+                item.id,
+                item,
+              ]),
+            ).values(),
+          ]);
         }
       } catch {
-        setError("Registration pending. Your battle is safe to retry.");
+        setError("Could not read saved battles. Please try syncing again.");
       } finally {
         running.current = false;
+        setSyncing(false);
+        if (confirmedAny)
+          void queryClient.invalidateQueries({ queryKey: ["matches"] });
       }
     })();
   }, [mutateAsync, queryClient]);
@@ -65,42 +90,42 @@ export function MatchSyncProvider({ children }: { children: React.ReactNode }) {
     (record: MatchRecord) => {
       try {
         queueMatch(record);
-        setPending(getPending());
       } catch {
-        transient.current.push(record);
-        setPending([...getPending(), ...transient.current]);
+        transient.current.set(record.id, record);
         setError(
-          "Browser storage unavailable. Keep this tab open until registration succeeds.",
+          "Browser storage unavailable. Keep this tab open until the battle is synced.",
         );
       }
+      setPending([
+        ...new Map(
+          [...getPending(), ...transient.current.values()].map((item) => [
+            item.id,
+            item,
+          ]),
+        ).values(),
+      ]);
       retry();
     },
     [retry],
   );
   return (
-    <SyncContext.Provider
-      value={{ pending, syncing: mutation.isPending, error, submit, retry }}
-    >
+    <SyncContext.Provider value={{ pending, syncing, error, submit, retry }}>
       {children}
     </SyncContext.Provider>
   );
 }
+
 export function RegistrationStatus({ id }: { id: string }) {
   const sync = useMatchSync();
   const pending = sync.pending.some((record) => record.id === id);
+  // The result shows a compact state. Recovery controls belong to Match History.
   return (
-    <div className="registration-status" role="status">
-      {pending
-        ? sync.syncing
-          ? "Registering battle…"
-          : "Registration pending"
-        : "Battle registered"}
-      {pending && !sync.syncing && (
-        <button className="text-button" onClick={sync.retry}>
-          RETRY
-        </button>
-      )}
-      {pending && sync.error && <p>{sync.error}</p>}
-    </div>
+    <p className="registration-status" role="status">
+      {!pending
+        ? "Battle saved"
+        : sync.syncing
+          ? "Saving battle…"
+          : "Saved locally · sync available in Match History"}
+    </p>
   );
 }

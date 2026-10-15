@@ -1,24 +1,51 @@
-import * as React from 'react';
-import * as PIXI from 'pixi.js';
+import * as React from "react";
+import * as PIXI from "pixi.js";
+import type { PlayerInput } from "./game/input";
+import type { GameSettings } from "./game/settings";
+import {
+  rewardConfig,
+  collectHealthPickups,
+  type HealthPickup,
+} from "./game/rewards";
+import { createWakeLayer } from "./game/createWakeLayer";
+import woodImageUrl from "../assets/png/default/ship_parts/wood_1.png";
+export interface GameControls {
+  pause?: () => void;
+  resume?: () => void;
+  setInput?: (action: keyof PlayerInput, pressed: boolean) => void;
+}
+const shipUrls = import.meta.glob<string>(
+  "../assets/png/default/ships/ship_*.png",
+  { eager: true, query: "?url", import: "default" },
+);
+function variantImages(base: number) {
+  return {
+    green: shipUrls[`../assets/png/default/ships/ship_${base}.png`],
+    amber: shipUrls[`../assets/png/default/ships/ship_${base + 6}.png`],
+    red: shipUrls[`../assets/png/default/ships/ship_${base + 12}.png`],
+    dead: shipUrls[`../assets/png/default/ships/ship_${base + 18}.png`],
+  };
+}
+const healerImages = variantImages(4);
+const speedImages = variantImages(6);
 
-import oceanImageUrl from '../assets/png/default/tiles/tile_73.png';
-import cannonBallImageUrl from '../assets/png/default/ship_parts/cannon_ball.png';
-import explosionImageUrl from '../assets/png/default/effects/explosion_1.png';
-import playerGreenImageUrl from '../assets/png/default/ships/ship_2.png';
-import playerAmberImageUrl from '../assets/png/default/ships/ship_8.png';
-import playerRedImageUrl from '../assets/png/default/ships/ship_14.png';
-import playerDeadImageUrl from '../assets/png/default/ships/ship_20.png';
-import chaserGreenImageUrl from '../assets/png/default/ships/ship_3.png';
-import chaserAmberImageUrl from '../assets/png/default/ships/ship_9.png';
-import chaserRedImageUrl from '../assets/png/default/ships/ship_15.png';
-import chaserDeadImageUrl from '../assets/png/default/ships/ship_21.png';
-import shooterGreenImageUrl from '../assets/png/default/ships/ship_5.png';
-import shooterAmberImageUrl from '../assets/png/default/ships/ship_11.png';
-import shooterRedImageUrl from '../assets/png/default/ships/ship_17.png';
-import shooterDeadImageUrl from '../assets/png/default/ships/ship_23.png';
-
-import { arenaConfig } from './game/arena';
-import { createGameAudio } from './game/audio';
+import oceanImageUrl from "../assets/png/default/tiles/tile_73.png";
+import cannonBallImageUrl from "../assets/png/default/ship_parts/cannon_ball.png";
+import explosionImageUrl from "../assets/png/default/effects/explosion_1.png";
+import playerGreenImageUrl from "../assets/png/default/ships/ship_2.png";
+import playerAmberImageUrl from "../assets/png/default/ships/ship_8.png";
+import playerRedImageUrl from "../assets/png/default/ships/ship_14.png";
+import playerDeadImageUrl from "../assets/png/default/ships/ship_20.png";
+import chaserGreenImageUrl from "../assets/png/default/ships/ship_3.png";
+import chaserAmberImageUrl from "../assets/png/default/ships/ship_9.png";
+import chaserRedImageUrl from "../assets/png/default/ships/ship_15.png";
+import chaserDeadImageUrl from "../assets/png/default/ships/ship_21.png";
+import shooterGreenImageUrl from "../assets/png/default/ships/ship_5.png";
+import shooterAmberImageUrl from "../assets/png/default/ships/ship_11.png";
+import shooterRedImageUrl from "../assets/png/default/ships/ship_17.png";
+import shooterDeadImageUrl from "../assets/png/default/ships/ship_23.png";
+import { arenaConfig } from "./game/arena";
+import { createGameAudio } from "./game/audio";
 import {
   createCombatState,
   projectileConfig,
@@ -27,29 +54,41 @@ import {
   type CombatEvent,
   type ProjectileState,
   type SplashState,
-} from './game/combat';
-import { createHealthBar } from './game/createHealthBar';
-import { createShipView } from './game/createShipView';
-import { enemyConfig, type EnemyState } from './game/enemy';
-import { getHealthStage } from './game/health';
-import { createPlayerInput } from './game/input';
-import { bindKeyboardInput } from './game/keyboard';
+} from "./game/combat";
+import { createHealthBar } from "./game/createHealthBar";
+import { createShipView } from "./game/createShipView";
+import { enemyConfig, type EnemyState } from "./game/enemy";
+import { getHealthStage } from "./game/health";
+import { createPlayerInput } from "./game/input";
+import { bindKeyboardInput } from "./game/keyboard";
 import {
   constrainPlayerToArena,
   updatePlayerMovement,
   type PlayerState,
-} from './game/player';
-import { createSpawnState, updateEnemySpawning } from './game/spawn';
-import { createIslands } from './game/islands';
-import { createIslandLayer } from './game/createIslandLayer';
+} from "./game/player";
+import { createSpawnState, updateEnemySpawning } from "./game/spawn";
+import { createIslands } from "./game/islands";
+import { createIslandLayer } from "./game/createIslandLayer";
 import {
   createIslandColliders,
-  isShipPathBlocked,
-} from './game/islandGeometry';
+  isCirclePathBlocked,
+} from "./game/islandGeometry";
+import {
+  createMatchState,
+  getRemainingSeconds,
+  advanceMatch,
+  type MatchResult,
+} from "./game/match";
 
 interface GameCanvasProps {
+  settings: GameSettings;
+  controls: GameControls;
+  onPauseChange: (paused: boolean) => void;
+  onBoostChange: (seconds: number) => void;
   onScoreChange: (score: number) => void;
   onHealthChange: (health: number) => void;
+  onTimeChange: (remainingSeconds: number) => void;
+  onMatchEnd: (result: MatchResult) => void;
 }
 
 type ShipView = Awaited<ReturnType<typeof createShipView>>;
@@ -70,7 +109,7 @@ interface DestructionEffect {
 }
 
 const sceneConfig = {
-  backgroundColor: '#167b9c',
+  backgroundColor: "#167b9c",
   maxResolution: 2,
   millisecondsPerSecond: 1000,
   shipRotationOffset: Math.PI,
@@ -118,10 +157,10 @@ const destructionAppearance = {
   scaleGrowth: 1,
   labelOffsetY: -40,
   labelRiseDistance: 35,
-  fontFamily: 'Arial',
+  fontFamily: "monospace",
   fontSize: 28,
-  textColor: '#ffe08a',
-  textStrokeColor: '#38240b',
+  textColor: "#ffe08a",
+  textStrokeColor: "#38240b",
   textStrokeWidth: 4,
 };
 
@@ -129,12 +168,28 @@ function getSpriteBoundsRadius(sprite: PIXI.Sprite): number {
   return Math.hypot(sprite.texture.width, sprite.texture.height) / 2;
 }
 
-export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
+export function GameCanvas({
+  settings,
+  controls,
+  onPauseChange,
+  onBoostChange,
+  onScoreChange,
+  onHealthChange,
+  onTimeChange,
+  onMatchEnd,
+}: GameCanvasProps) {
+  const [loadState, setLoadState] = React.useState<
+    "loading" | "ready" | "error"
+  >("loading");
+  const [loadAttempt, setLoadAttempt] = React.useState(0);
   const containerRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
+    setLoadState("loading");
     const app = new PIXI.Application();
     const input = createPlayerInput();
+    const keyboardInput = createPlayerInput();
+    const touchInput = createPlayerInput();
     let cancelled = false;
     let initialized = false;
     let appDestroyed = false;
@@ -150,6 +205,9 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
 
     function cleanup(): void {
       cancelled = true;
+      controls.pause = undefined;
+      controls.resume = undefined;
+      controls.setInput = undefined;
       unbindKeyboardInput?.();
       unbindScene?.();
       unbindKeyboardInput = undefined;
@@ -190,6 +248,9 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
       await PIXI.Assets.load([
         ...Object.values(chaserImages),
         ...Object.values(shooterImages),
+        ...Object.values(healerImages),
+        ...Object.values(speedImages),
+        woodImageUrl,
       ]);
 
       if (cancelled) return;
@@ -199,6 +260,8 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
         width: app.screen.width,
         height: app.screen.height,
       });
+      const woodTexture = PIXI.Assets.get<PIXI.Texture>(woodImageUrl);
+      const wake = createWakeLayer();
       const world = new PIXI.Container();
       const shipsLayer = new PIXI.Container();
       const projectilesLayer = new PIXI.Container();
@@ -207,6 +270,7 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
 
       app.stage.addChild(ocean, world);
       world.addChild(
+        wake.container,
         shipsLayer,
         projectilesLayer,
         effectsLayer,
@@ -227,11 +291,11 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
       const playerView = await createShipView(playerImages);
 
       if (cancelled) {
-        playerView.sprite.destroy({ children: true });
+        playerView.container.destroy({ children: true });
         return;
       }
 
-      shipsLayer.addChild(playerView.sprite);
+      shipsLayer.addChild(playerView.container);
       const playerBoundsRadius = getSpriteBoundsRadius(playerView.sprite);
       const playerHealthBar = await createHealthBar();
 
@@ -252,6 +316,13 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
       };
 
       const combat = createCombatState();
+      const match = createMatchState(settings.durationSeconds);
+      let paused = false;
+      let skipNextDelta = false;
+      let lastBoostSeconds = 0;
+      const pickups: HealthPickup[] = [];
+      const pickupViews = new Map<HealthPickup, PIXI.Container>();
+      let lastDisplayedSeconds = getRemainingSeconds(match);
       const spawnState = createSpawnState();
       const pendingEnemies = new Set<EnemyState>();
       let enemies: EnemyState[] = [];
@@ -270,21 +341,32 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
         let committed = false;
 
         try {
-          const images = enemy.kind === 'chaser' ? chaserImages : shooterImages;
+          const images =
+            enemy.kind === "chaser"
+              ? chaserImages
+              : enemy.variant === "healer"
+                ? healerImages
+                : enemy.variant === "speed"
+                  ? speedImages
+                  : shooterImages;
 
           ship = await createShipView(images);
 
-          if (cancelled || player.health <= 0) return;
+          if (cancelled || match.status !== "playing" || player.health <= 0) {
+            return;
+          }
 
           healthBar = await createHealthBar();
 
-          if (cancelled || player.health <= 0) return;
+          if (cancelled || match.status !== "playing" || player.health <= 0) {
+            return;
+          }
 
           const boundsRadius = getSpriteBoundsRadius(ship.sprite);
 
           ship.update(enemy, 0);
-          ship.sprite.position.set(enemy.x, enemy.y);
-          ship.sprite.rotation =
+          ship.container.position.set(enemy.x, enemy.y);
+          ship.container.rotation =
             enemy.rotation + sceneConfig.shipRotationOffset;
 
           healthBar.update(enemy);
@@ -293,7 +375,7 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
             enemy.y - boundsRadius - sceneConfig.healthBarGap,
           );
 
-          shipsLayer.addChild(ship.sprite);
+          shipsLayer.addChild(ship.container);
           healthBarsLayer.addChild(healthBar.container);
 
           enemyViews.set(enemy, {
@@ -305,12 +387,12 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
           enemies.push(enemy);
           committed = true;
         } catch (error: unknown) {
-          console.error('Failed to create enemy view:', error);
+          console.error("Failed to create enemy view:", error);
         } finally {
           pendingEnemies.delete(enemy);
 
           if (!committed) {
-            ship?.sprite.destroy({ children: true });
+            ship?.container.destroy({ children: true });
             healthBar?.container.destroy({ children: true });
           }
         }
@@ -325,6 +407,9 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
           reservedEnemies,
           deltaSeconds,
           arenaConfig,
+          islandColliders,
+          Math.random,
+          settings.spawnIntervalSeconds,
         );
 
         for (const enemy of newEnemies) {
@@ -348,12 +433,16 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
         ocean.height = app.screen.height;
         ocean.tileScale.set(scale);
         ocean.tilePosition.set(world.x, world.y);
+
+        if (match.status === "finished" || paused) {
+          app.render();
+        }
       }
 
       function syncPlayerView(deltaSeconds: number): void {
         playerView.update(player, deltaSeconds);
-        playerView.sprite.position.set(player.x, player.y);
-        playerView.sprite.rotation =
+        playerView.container.position.set(player.x, player.y);
+        playerView.container.rotation =
           player.rotation + sceneConfig.shipRotationOffset;
         playerHealthBar.update(player);
         playerHealthBar.container.position.set(
@@ -369,15 +458,15 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
             enemy.deadElapsedSeconds >= enemyConfig.corpseDurationSeconds;
 
           if (corpseExpired) {
-            view.ship.sprite.destroy({ children: true });
+            view.ship.container.destroy({ children: true });
             view.healthBar.container.destroy({ children: true });
             enemyViews.delete(enemy);
             continue;
           }
 
           view.ship.update(enemy, deltaSeconds);
-          view.ship.sprite.position.set(enemy.x, enemy.y);
-          view.ship.sprite.rotation =
+          view.ship.container.position.set(enemy.x, enemy.y);
+          view.ship.container.rotation =
             enemy.rotation + sceneConfig.shipRotationOffset;
           view.healthBar.update(enemy);
           view.healthBar.container.visible = enemy.health > 0;
@@ -483,7 +572,7 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
           style: {
             fontFamily: destructionAppearance.fontFamily,
             fontSize: destructionAppearance.fontSize,
-            fontWeight: 'bold',
+            fontWeight: "bold",
             fill: destructionAppearance.textColor,
             stroke: {
               color: destructionAppearance.textStrokeColor,
@@ -537,26 +626,34 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
 
         for (const event of events) {
           switch (event.type) {
-            case 'shotFired':
+            case "shotFired":
               gameAudio?.play(
-                event.action === 'fireFront' ? 'frontShot' : 'broadside',
+                event.action === "fireFront" ? "frontShot" : "broadside",
               );
               break;
-            case 'enemyShotFired':
-              gameAudio?.play('frontShot');
+            case "enemyShotFired":
+              gameAudio?.play("frontShot");
               break;
-            case 'waterHit':
-              gameAudio?.play('waterHit');
+            case "waterHit":
+              gameAudio?.play("waterHit");
               break;
-            case 'enemyDestroyed':
+            case "enemyDestroyed":
               createDestructionEffect(event.x, event.y, event.points);
-              gameAudio?.play('explosion');
-              gameAudio?.play('enemySinking');
+              gameAudio?.play("explosion");
+              gameAudio?.play("enemySinking");
 
               if (event.points > 0) {
+                if (event.reward === "speed")
+                  combat.speedBoostSeconds = rewardConfig.boostDurationSeconds;
+                if (event.reward === "heal")
+                  pickups.push({
+                    x: event.x,
+                    y: event.y,
+                    remainingSeconds: rewardConfig.pickupLifetimeSeconds,
+                  });
                 score += event.points;
                 scoreChanged = true;
-                gameAudio?.play('score');
+                gameAudio?.play("score");
               }
               break;
           }
@@ -566,16 +663,102 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
       }
 
       function syncLowHealthAudio(): void {
-        if (getHealthStage(player) === 'red') {
-          gameAudio?.play('lowHealth');
+        if (getHealthStage(player) === "red") {
+          gameAudio?.play("lowHealth");
         } else {
-          gameAudio?.stop('lowHealth');
+          gameAudio?.stop("lowHealth");
         }
       }
 
+      function syncPickups(): void {
+        const active = new Set(pickups);
+        for (const [pickup, view] of pickupViews)
+          if (!active.has(pickup)) {
+            view.destroy({ children: true });
+            pickupViews.delete(pickup);
+          }
+        for (const pickup of pickups) {
+          let view = pickupViews.get(pickup);
+          if (!view) {
+            view = new PIXI.Container();
+            const halo = new PIXI.Graphics()
+              .circle(0, 0, 25)
+              .fill({ color: 0x71e894, alpha: 0.22 });
+            const wood = new PIXI.Sprite(woodTexture);
+            wood.anchor.set(0.5);
+            const label = new PIXI.Text({
+              text: "+ HP",
+              style: {
+                fontFamily: "monospace",
+                fontSize: 18,
+                fontWeight: "bold",
+                fill: 0xa0ffc2,
+                stroke: { color: 0x183d31, width: 3 },
+              },
+            });
+            label.anchor.set(0.5);
+            label.y = -30;
+            view.addChild(halo, wood, label);
+            effectsLayer.addChild(view);
+            pickupViews.set(pickup, view);
+          }
+          view.position.set(pickup.x, pickup.y);
+          view.alpha = 0.8 + Math.sin(pickup.remainingSeconds * 4) * 0.2;
+        }
+      }
+      function pause(): void {
+        if (cancelled || paused || match.result) return;
+        paused = true;
+        Object.assign(touchInput, createPlayerInput());
+        unbindKeyboardInput?.();
+        unbindKeyboardInput = undefined;
+        gameAudio?.stop("ocean");
+        gameAudio?.stop("lowHealth");
+        gameAudio?.play("gamePause");
+        app.stop();
+        onPauseChange(true);
+      }
+      function resume(): void {
+        if (cancelled || !paused || match.result) return;
+        paused = false;
+        skipNextDelta = true;
+        unbindKeyboardInput = bindKeyboardInput(keyboardInput);
+        gameAudio?.play("gameResume");
+        gameAudio?.play("ocean");
+        syncLowHealthAudio();
+        onPauseChange(false);
+        app.start();
+      }
+      function onVisibilityChange(): void {
+        if (document.hidden) pause();
+      }
+      function onPauseKey(event: KeyboardEvent): void {
+        if (event.code === "Escape") pause();
+      }
+      controls.pause = pause;
+      controls.resume = resume;
+      controls.setInput = (action, pressed) => {
+        if (!paused && !match.result) touchInput[action] = pressed;
+      };
+
       function updateFrame(ticker: PIXI.Ticker): void {
+        if (match.status !== "playing" || paused) return;
+        if (skipNextDelta) {
+          skipNextDelta = false;
+          return;
+        }
+        for (const action of Object.keys(input) as (keyof PlayerInput)[])
+          input[action] = keyboardInput[action] || touchInput[action];
         const previousHealth = player.health;
-        const deltaSeconds = ticker.deltaMS / sceneConfig.millisecondsPerSecond;
+        const remainingDuration = Math.max(
+          0,
+          match.durationSeconds - match.elapsedSeconds,
+        );
+
+        const deltaSeconds = Math.min(
+          ticker.deltaMS / sceneConfig.millisecondsPerSecond,
+          remainingDuration,
+        );
 
         const previousPlayerPosition = {
           x: player.x,
@@ -586,7 +769,7 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
 
         constrainPlayerToArena(player, arenaConfig, playerBoundsRadius);
 
-        const hitIsland = isShipPathBlocked(
+        const hitIsland = isCirclePathBlocked(
           previousPlayerPosition,
           player,
           playerBoundsRadius,
@@ -599,10 +782,26 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
           player.speed = 0;
         }
         updateSpawns(deltaSeconds);
-        updateCombat(combat, player, input, deltaSeconds, arenaConfig, enemies);
+        updateCombat(
+          combat,
+          player,
+          input,
+          deltaSeconds,
+          arenaConfig,
+          enemies,
+          islandColliders,
+        );
 
+        collectHealthPickups(pickups, player, deltaSeconds);
+        syncPickups();
+        wake.update([player, ...enemies], deltaSeconds);
         updateDestructionEffects(deltaSeconds);
         handleCombatEvents(combat.events);
+        const boostSeconds = Math.ceil(combat.speedBoostSeconds);
+        if (boostSeconds !== lastBoostSeconds) {
+          lastBoostSeconds = boostSeconds;
+          onBoostChange(boostSeconds);
+        }
         syncLowHealthAudio();
 
         if (player.health !== previousHealth) onHealthChange(player.health);
@@ -611,10 +810,35 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
         syncEnemyViews(deltaSeconds);
         syncProjectileSprites();
         syncSplashGraphics();
+
+        advanceMatch(match, deltaSeconds, player.health, score);
+
+        const remainingSeconds = getRemainingSeconds(match);
+
+        if (remainingSeconds !== lastDisplayedSeconds) {
+          lastDisplayedSeconds = remainingSeconds;
+          onTimeChange(remainingSeconds);
+        }
+
+        if (match.result !== null) {
+          unbindKeyboardInput?.();
+          unbindKeyboardInput = undefined;
+
+          gameAudio?.stop("ocean");
+          gameAudio?.stop("lowHealth");
+
+          app.stop();
+          app.render();
+
+          gameAudio?.play(
+            match.result.reason === "timeUp" ? "gameComplete" : "gameOver",
+          );
+          onMatchEnd(match.result);
+        }
       }
 
       gameAudio = await createGameAudio().catch((error: unknown) => {
-        console.error('Failed to load game audio:', error);
+        console.error("Failed to load game audio:", error);
         return undefined;
       });
 
@@ -624,32 +848,75 @@ export function GameCanvas({ onScoreChange, onHealthChange }: GameCanvasProps) {
         return;
       }
 
-      app.renderer.on('resize', resizeScene);
+      window.addEventListener("blur", pause);
+      document.addEventListener("visibilitychange", onVisibilityChange);
+      window.addEventListener("keydown", onPauseKey);
+      app.renderer.on("resize", resizeScene);
       app.ticker.add(updateFrame);
       unbindScene = () => {
-        app.renderer.off('resize', resizeScene);
+        window.removeEventListener("blur", pause);
+        document.removeEventListener("visibilitychange", onVisibilityChange);
+        window.removeEventListener("keydown", onPauseKey);
+        app.renderer.off("resize", resizeScene);
         app.ticker.remove(updateFrame);
       };
-      unbindKeyboardInput = bindKeyboardInput(input);
+      unbindKeyboardInput = bindKeyboardInput(keyboardInput);
 
       resizeScene();
       syncPlayerView(0);
       syncEnemyViews(0);
       onScoreChange(score);
       onHealthChange(player.health);
+      onTimeChange(lastDisplayedSeconds);
       syncLowHealthAudio();
       containerRef.current?.appendChild(app.canvas);
-      gameAudio?.play('ocean');
+      setLoadState("ready");
+      gameAudio?.play("ocean");
+      gameAudio?.play("gameStart");
       app.start();
+      if (document.hidden || !document.hasFocus()) pause();
     }
 
     void start().catch((error: unknown) => {
-      console.error('Failed to initialize PixiJS:', error);
+      if (cancelled) return;
+      setLoadState("error");
+      console.error("Failed to initialize PixiJS:", error);
       cleanup();
     });
 
     return cleanup;
-  }, [onScoreChange, onHealthChange]);
+  }, [
+    settings,
+    controls,
+    onPauseChange,
+    onBoostChange,
+    onScoreChange,
+    onHealthChange,
+    onTimeChange,
+    onMatchEnd,
+    loadAttempt,
+  ]);
 
-  return <div ref={containerRef} />;
+  return (
+    <>
+      <div ref={containerRef} />
+      {loadState !== "ready" && (
+        <div className="loading-overlay" role="status">
+          {loadState === "loading" ? (
+            "Loading the sea…"
+          ) : (
+            <>
+              <p>Could not load the battle.</p>
+              <button
+                className="gold-button"
+                onClick={() => setLoadAttempt((value) => value + 1)}
+              >
+                TRY AGAIN
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </>
+  );
 }

@@ -1,7 +1,4 @@
-import type {
-  IslandDefinition,
-  IslandPoint,
-} from './islands';
+import type { IslandDefinition, IslandPoint } from "./islands";
 
 export interface IslandCollider {
   points: IslandPoint[];
@@ -9,6 +6,7 @@ export interface IslandCollider {
 
 const geometryConfig = {
   cornerSegments: 8,
+  hitTimeIterations: 16,
 };
 
 export function createRoundedOutline(
@@ -22,8 +20,7 @@ export function createRoundedOutline(
   const outline: IslandPoint[] = [];
 
   for (let index = 0; index < points.length; index++) {
-    const previous =
-      points[(index - 1 + points.length) % points.length];
+    const previous = points[(index - 1 + points.length) % points.length];
     const current = points[index];
     const next = points[(index + 1) % points.length];
 
@@ -34,40 +31,25 @@ export function createRoundedOutline(
       previous.y - current.y,
     );
 
-    const nextDistance = Math.hypot(
-      next.x - current.x,
-      next.y - current.y,
-    );
+    const nextDistance = Math.hypot(next.x - current.x, next.y - current.y);
 
     if (previousDistance === 0 || nextDistance === 0) {
       continue;
     }
 
-    const offset = Math.min(
-      radius,
-      previousDistance / 2,
-      nextDistance / 2,
-    );
+    const offset = Math.min(radius, previousDistance / 2, nextDistance / 2);
 
     const start = {
-      x: current.x +
-        ((previous.x - current.x) / previousDistance) * offset,
-      y: current.y +
-        ((previous.y - current.y) / previousDistance) * offset,
+      x: current.x + ((previous.x - current.x) / previousDistance) * offset,
+      y: current.y + ((previous.y - current.y) / previousDistance) * offset,
     };
 
     const end = {
-      x: current.x +
-        ((next.x - current.x) / nextDistance) * offset,
-      y: current.y +
-        ((next.y - current.y) / nextDistance) * offset,
+      x: current.x + ((next.x - current.x) / nextDistance) * offset,
+      y: current.y + ((next.y - current.y) / nextDistance) * offset,
     };
 
-    for (
-      let step = 0;
-      step <= geometryConfig.cornerSegments;
-      step++
-    ) {
+    for (let step = 0; step <= geometryConfig.cornerSegments; step++) {
       const progress = step / geometryConfig.cornerSegments;
       const remaining = 1 - progress;
 
@@ -91,13 +73,12 @@ export function createIslandColliders(
   islands: readonly IslandDefinition[],
 ): IslandCollider[] {
   return islands.map((island) => ({
-    points: createRoundedOutline(
-      island.outline,
-      island.cornerRadius,
-    ).map((point) => ({
-      x: point.x + island.x,
-      y: point.y + island.y,
-    })),
+    points: createRoundedOutline(island.outline, island.cornerRadius).map(
+      (point) => ({
+        x: point.x + island.x,
+        y: point.y + island.y,
+      }),
+    ),
   }));
 }
 
@@ -110,18 +91,17 @@ function pointSegmentDistanceSquared(
   const dy = end.y - start.y;
   const lengthSquared = dx * dx + dy * dy;
 
-  const progress = lengthSquared > 0
-    ? Math.max(
-        0,
-        Math.min(
-          1,
-          (
-            (point.x - start.x) * dx +
-            (point.y - start.y) * dy
-          ) / lengthSquared,
-        ),
-      )
-    : 0;
+  const progress =
+    lengthSquared > 0
+      ? Math.max(
+          0,
+          Math.min(
+            1,
+            ((point.x - start.x) * dx + (point.y - start.y) * dy) /
+              lengthSquared,
+          ),
+        )
+      : 0;
 
   const offsetX = point.x - (start.x + dx * progress);
   const offsetY = point.y - (start.y + dy * progress);
@@ -147,17 +127,12 @@ function segmentsCross(
   const offsetX = edgeStart.x - start.x;
   const offsetY = edgeStart.y - start.y;
 
-  const progress =
-    (offsetX * edgeY - offsetY * edgeX) / denominator;
+  const progress = (offsetX * edgeY - offsetY * edgeX) / denominator;
 
-  const edgeProgress =
-    (offsetX * dy - offsetY * dx) / denominator;
+  const edgeProgress = (offsetX * dy - offsetY * dx) / denominator;
 
   return (
-    progress >= 0 &&
-    progress <= 1 &&
-    edgeProgress >= 0 &&
-    edgeProgress <= 1
+    progress >= 0 && progress <= 1 && edgeProgress >= 0 && edgeProgress <= 1
   );
 }
 
@@ -173,11 +148,9 @@ function isPointInside(
 
     if (!start || !end) continue;
 
-    if ((start.y > point.y) !== (end.y > point.y)) {
-      const crossingX = start.x +
-        (
-          (point.y - start.y) * (end.x - start.x)
-        ) / (end.y - start.y);
+    if (start.y > point.y !== end.y > point.y) {
+      const crossingX =
+        start.x + ((point.y - start.y) * (end.x - start.x)) / (end.y - start.y);
 
       if (point.x < crossingX) {
         inside = !inside;
@@ -188,7 +161,7 @@ function isPointInside(
   return inside;
 }
 
-export function isShipPathBlocked(
+export function isCirclePathBlocked(
   start: IslandPoint,
   end: IslandPoint,
   radius: number,
@@ -199,10 +172,7 @@ export function isShipPathBlocked(
   for (const collider of colliders) {
     const polygon = collider.points;
 
-    if (
-      isPointInside(start, polygon) ||
-      isPointInside(end, polygon)
-    ) {
+    if (isPointInside(start, polygon) || isPointInside(end, polygon)) {
       return true;
     }
 
@@ -230,4 +200,43 @@ export function isShipPathBlocked(
   }
 
   return false;
+}
+
+export function findIslandHitTime(
+  start: IslandPoint,
+  end: IslandPoint,
+  radius: number,
+  colliders: readonly IslandCollider[],
+): number | null {
+  if (!isCirclePathBlocked(start, end, radius, colliders)) {
+    return null;
+  }
+
+  if (isCirclePathBlocked(start, start, radius, colliders)) {
+    return 0;
+  }
+
+  let clearTime = 0;
+  let blockedTime = 1;
+
+  for (
+    let iteration = 0;
+    iteration < geometryConfig.hitTimeIterations;
+    iteration++
+  ) {
+    const middleTime = (clearTime + blockedTime) / 2;
+
+    const middlePosition = {
+      x: start.x + (end.x - start.x) * middleTime,
+      y: start.y + (end.y - start.y) * middleTime,
+    };
+
+    if (isCirclePathBlocked(start, middlePosition, radius, colliders)) {
+      blockedTime = middleTime;
+    } else {
+      clearTime = middleTime;
+    }
+  }
+
+  return blockedTime;
 }

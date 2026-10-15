@@ -1,5 +1,6 @@
-import { applyDamage, type HealthState } from './health';
-import type { PlayerState } from './player';
+import { applyDamage, type HealthState } from "./health";
+import type { PlayerState } from "./player";
+import { isCirclePathBlocked, type IslandCollider } from "./islandGeometry";
 
 interface BaseEnemyState extends HealthState {
   x: number;
@@ -10,11 +11,14 @@ interface BaseEnemyState extends HealthState {
 }
 
 export interface ChaserState extends BaseEnemyState {
-  kind: 'chaser';
+  kind: "chaser";
 }
 
+export type ShooterVariant = "standard" | "healer" | "speed";
+
 export interface ShooterState extends BaseEnemyState {
-  kind: 'shooter';
+  variant: ShooterVariant;
+  kind: "shooter";
   shotCooldownSeconds: number;
 }
 
@@ -22,6 +26,7 @@ export type EnemyState = ChaserState | ShooterState;
 
 export const enemyConfig = {
   corpseDurationSeconds: 0.8,
+  islandCollisionRadius: 66,
 };
 
 export const chaserConfig = {
@@ -50,7 +55,7 @@ export const shooterConfig = {
 
 export function createChaser(x: number, y: number): ChaserState {
   return {
-    kind: 'chaser',
+    kind: "chaser",
     x,
     y,
     rotation: Math.PI,
@@ -61,9 +66,14 @@ export function createChaser(x: number, y: number): ChaserState {
   };
 }
 
-export function createShooter(x: number, y: number): ShooterState {
+export function createShooter(
+  x: number,
+  y: number,
+  variant: ShooterVariant = "standard",
+): ShooterState {
   return {
-    kind: 'shooter',
+    kind: "shooter",
+    variant,
     x,
     y,
     rotation: Math.PI,
@@ -75,12 +85,30 @@ export function createShooter(x: number, y: number): ShooterState {
   };
 }
 
-// Returns true only on the frame in which the Chaser explodes on contact.
+function moveEnemyIfPathIsClear(
+  enemy: EnemyState,
+  nextPosition: { x: number; y: number },
+  islandColliders: readonly IslandCollider[],
+): void {
+  const blocked = isCirclePathBlocked(
+    enemy,
+    nextPosition,
+    enemyConfig.islandCollisionRadius,
+    islandColliders,
+  );
+
+  if (blocked) return;
+
+  enemy.x = nextPosition.x;
+  enemy.y = nextPosition.y;
+}
+
 export function updateChaser(
   enemy: ChaserState,
   player: PlayerState,
   deltaSeconds: number,
   playerRadius: number,
+  islandColliders: readonly IslandCollider[],
 ): boolean {
   if (enemy.health <= 0) {
     enemy.deadElapsedSeconds += deltaSeconds;
@@ -103,16 +131,29 @@ export function updateChaser(
       availableDistance,
     );
 
-    enemy.x += (dx / distance) * movement;
-    enemy.y += (dy / distance) * movement;
+    moveEnemyIfPathIsClear(
+      enemy,
+      {
+        x: enemy.x + (dx / distance) * movement,
+        y: enemy.y + (dy / distance) * movement,
+      },
+      islandColliders,
+    );
   }
 
-  const currentDistance = Math.hypot(
-    player.x - enemy.x,
-    player.y - enemy.y,
+  const currentDistance = Math.hypot(player.x - enemy.x, player.y - enemy.y);
+
+  const isWithinContactDistance =
+    currentDistance <= contactDistance + chaserConfig.contactTolerance;
+
+  const hasIslandBetweenShips = isCirclePathBlocked(
+    enemy,
+    player,
+    0,
+    islandColliders,
   );
 
-  if (currentDistance > contactDistance + chaserConfig.contactTolerance) {
+  if (!isWithinContactDistance || hasIslandBetweenShips) {
     return false;
   }
 
@@ -125,11 +166,11 @@ function getAngleDifference(target: number, current: number): number {
   return Math.atan2(Math.sin(target - current), Math.cos(target - current));
 }
 
-// Returns true when a shot should be created by the combat system.
 export function updateShooter(
   enemy: ShooterState,
   player: PlayerState,
   deltaSeconds: number,
+  islandColliders: readonly IslandCollider[],
 ): boolean {
   if (enemy.health <= 0) {
     enemy.deadElapsedSeconds += deltaSeconds;
@@ -170,13 +211,16 @@ export function updateShooter(
     availableDistance,
   );
 
-  enemy.x += Math.sin(enemy.rotation) * movement;
-  enemy.y -= Math.cos(enemy.rotation) * movement;
-
-  const currentDistance = Math.hypot(
-    player.x - enemy.x,
-    player.y - enemy.y,
+  moveEnemyIfPathIsClear(
+    enemy,
+    {
+      x: enemy.x + Math.sin(enemy.rotation) * movement,
+      y: enemy.y - Math.cos(enemy.rotation) * movement,
+    },
+    islandColliders,
   );
+
+  const currentDistance = Math.hypot(player.x - enemy.x, player.y - enemy.y);
 
   if (
     currentDistance > shooterConfig.attackRange ||

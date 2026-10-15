@@ -1,17 +1,19 @@
-import type { PlayerInput } from './input';
-import type { ArenaBounds, PlayerState } from './player';
+import { rewardConfig } from "./rewards";
+import type { PlayerInput } from "./input";
+import type { ArenaBounds, PlayerState } from "./player";
 import {
   shooterConfig,
   updateChaser,
   updateShooter,
   type EnemyState,
   type ShooterState,
-} from './enemy';
-import { applyDamage } from './health';
+} from "./enemy";
+import { applyDamage } from "./health";
+import { findIslandHitTime, type IslandCollider } from "./islandGeometry";
 
-type FireAction = 'fireFront' | 'fireLeft' | 'fireRight';
-type ProjectileOwner = 'player' | 'enemy';
-type EnemyDestructionCause = 'playerAttack' | 'collision';
+type FireAction = "fireFront" | "fireLeft" | "fireRight";
+type ProjectileOwner = "player" | "enemy";
+type EnemyDestructionCause = "playerAttack" | "collision";
 
 interface Position {
   x: number;
@@ -26,18 +28,19 @@ interface WeaponDefinition {
 }
 
 export interface EnemyDestroyedEvent {
-  type: 'enemyDestroyed';
+  type: "enemyDestroyed";
   cause: EnemyDestructionCause;
   x: number;
   y: number;
   points: number;
+  reward: "none" | "heal" | "speed";
 }
 
 export type CombatEvent =
   | EnemyDestroyedEvent
-  | { type: 'shotFired'; action: FireAction }
-  | { type: 'enemyShotFired' }
-  | { type: 'waterHit' };
+  | { type: "shotFired"; action: FireAction }
+  | { type: "enemyShotFired" }
+  | { type: "waterHit" };
 
 export interface ProjectileState extends Position {
   owner: ProjectileOwner;
@@ -57,6 +60,7 @@ export interface CombatState {
   cooldowns: Record<FireAction, number>;
   splashes: SplashState[];
   events: CombatEvent[];
+  speedBoostSeconds: number;
 }
 
 export const combatConfig = {
@@ -86,13 +90,13 @@ const weaponConfig = {
 
 const weapons: readonly WeaponDefinition[] = [
   {
-    action: 'fireFront',
+    action: "fireFront",
     cooldownSeconds: weaponConfig.frontCooldownSeconds,
     angleOffset: 0,
     muzzles: [{ forward: weaponConfig.frontMuzzleDistance, sideways: 0 }],
   },
   {
-    action: 'fireLeft',
+    action: "fireLeft",
     cooldownSeconds: weaponConfig.broadsideCooldownSeconds,
     angleOffset: -Math.PI / 2,
     muzzles: [
@@ -111,7 +115,7 @@ const weapons: readonly WeaponDefinition[] = [
     ],
   },
   {
-    action: 'fireRight',
+    action: "fireRight",
     cooldownSeconds: weaponConfig.broadsideCooldownSeconds,
     angleOffset: Math.PI / 2,
     muzzles: [
@@ -137,6 +141,7 @@ export function createCombatState(): CombatState {
     cooldowns: { fireFront: 0, fireLeft: 0, fireRight: 0 },
     splashes: [],
     events: [],
+    speedBoostSeconds: 0,
   };
 }
 
@@ -146,13 +151,19 @@ function fireWeapons(
   input: PlayerInput,
   deltaSeconds: number,
 ): void {
+  const shotSpeed =
+    projectileConfig.speed *
+    (combat.speedBoostSeconds > 0 ? rewardConfig.projectileSpeedMultiplier : 1);
   const forwardX = Math.sin(player.rotation);
   const forwardY = -Math.cos(player.rotation);
   const rightX = Math.cos(player.rotation);
   const rightY = Math.sin(player.rotation);
 
   for (const weapon of weapons) {
-    const cooldown = Math.max(0, combat.cooldowns[weapon.action] - deltaSeconds);
+    const cooldown = Math.max(
+      0,
+      combat.cooldowns[weapon.action] - deltaSeconds,
+    );
     combat.cooldowns[weapon.action] = cooldown;
 
     if (player.health <= 0 || !input[weapon.action] || cooldown > 0) continue;
@@ -161,11 +172,11 @@ function fireWeapons(
 
     for (const muzzle of weapon.muzzles) {
       combat.projectiles.push({
-        owner: 'player',
+        owner: "player",
         x: player.x + forwardX * muzzle.forward + rightX * muzzle.sideways,
         y: player.y + forwardY * muzzle.forward + rightY * muzzle.sideways,
-        velocityX: Math.sin(direction) * projectileConfig.speed,
-        velocityY: -Math.cos(direction) * projectileConfig.speed,
+        velocityX: Math.sin(direction) * shotSpeed,
+        velocityY: -Math.cos(direction) * shotSpeed,
         remainingSeconds: projectileConfig.lifetimeSeconds,
         remainingRange: projectileConfig.range,
         damage: projectileConfig.damage,
@@ -173,7 +184,7 @@ function fireWeapons(
     }
 
     combat.cooldowns[weapon.action] = weapon.cooldownSeconds;
-    combat.events.push({ type: 'shotFired', action: weapon.action });
+    combat.events.push({ type: "shotFired", action: weapon.action });
   }
 }
 
@@ -239,15 +250,27 @@ function recordEnemyDestroyed(
   cause: EnemyDestructionCause,
 ): void {
   combat.events.push({
-    type: 'enemyDestroyed',
+    type: "enemyDestroyed",
     cause,
     x: enemy.x,
     y: enemy.y,
-    points: cause === 'playerAttack' ? combatConfig.pointsPerPlayerDefeat : 0,
+    reward:
+      cause === "playerAttack" && enemy.kind === "shooter"
+        ? enemy.variant === "healer"
+          ? "heal"
+          : enemy.variant === "speed"
+            ? "speed"
+            : "none"
+        : "none",
+    points: cause === "playerAttack" ? combatConfig.pointsPerPlayerDefeat : 0,
   });
 }
 
-function isInsideArena(position: Position, bounds: ArenaBounds, margin = 0): boolean {
+function isInsideArena(
+  position: Position,
+  bounds: ArenaBounds,
+  margin = 0,
+): boolean {
   return (
     position.x >= -margin &&
     position.x <= bounds.width + margin &&
@@ -263,7 +286,7 @@ function applyProjectileHit(
   player: PlayerState,
   enemies: readonly EnemyState[],
 ): boolean {
-  if (projectile.owner === 'enemy') {
+  if (projectile.owner === "enemy") {
     if (player.health <= 0) return false;
 
     const hitTime = getSegmentCircleHitTime(
@@ -288,7 +311,7 @@ function applyProjectileHit(
   projectile.remainingSeconds = 0;
 
   if (enemy.health === 0) {
-    recordEnemyDestroyed(combat, enemy, 'playerAttack');
+    recordEnemyDestroyed(combat, enemy, "playerAttack");
   }
 
   return true;
@@ -300,15 +323,20 @@ function updateProjectiles(
   enemies: readonly EnemyState[],
   deltaSeconds: number,
   bounds: ArenaBounds,
+  islandColliders: readonly IslandCollider[],
 ): void {
   for (const projectile of combat.projectiles) {
+    if (player.health <= 0) break;
     const previousPosition = { x: projectile.x, y: projectile.y };
     const activeSeconds = Math.max(
       0,
       Math.min(deltaSeconds, projectile.remainingSeconds),
     );
     const speed = Math.hypot(projectile.velocityX, projectile.velocityY);
-    const travelDistance = Math.min(speed * activeSeconds, projectile.remainingRange);
+    const travelDistance = Math.min(
+      speed * activeSeconds,
+      projectile.remainingRange,
+    );
 
     if (speed > 0) {
       projectile.x += (projectile.velocityX / speed) * travelDistance;
@@ -321,6 +349,23 @@ function updateProjectiles(
       projectile.remainingSeconds - deltaSeconds,
     );
 
+    const islandHitTime = findIslandHitTime(
+      previousPosition,
+      projectile,
+      projectileConfig.radius,
+      islandColliders,
+    );
+
+    if (islandHitTime !== null) {
+      projectile.x =
+        previousPosition.x +
+        (projectile.x - previousPosition.x) * islandHitTime;
+
+      projectile.y =
+        previousPosition.y +
+        (projectile.y - previousPosition.y) * islandHitTime;
+    }
+
     const hitTarget = applyProjectileHit(
       combat,
       projectile,
@@ -331,12 +376,21 @@ function updateProjectiles(
 
     if (hitTarget) continue;
 
+    if (islandHitTime !== null) {
+      projectile.remainingSeconds = 0;
+      continue;
+    }
+
     const hasFinished =
       projectile.remainingRange <= 0 || projectile.remainingSeconds <= 0;
 
     if (hasFinished && isInsideArena(projectile, bounds)) {
-      combat.splashes.push({ x: projectile.x, y: projectile.y, elapsedSeconds: 0 });
-      combat.events.push({ type: 'waterHit' });
+      combat.splashes.push({
+        x: projectile.x,
+        y: projectile.y,
+        elapsedSeconds: 0,
+      });
+      combat.events.push({ type: "waterHit" });
     }
   }
 
@@ -363,7 +417,7 @@ function fireShooterProjectile(combat: CombatState, enemy: ShooterState): void {
   const forwardY = -Math.cos(enemy.rotation);
 
   combat.projectiles.push({
-    owner: 'enemy',
+    owner: "enemy",
     x: enemy.x + forwardX * shooterConfig.muzzleDistance,
     y: enemy.y + forwardY * shooterConfig.muzzleDistance,
     velocityX: forwardX * shooterConfig.projectileSpeed,
@@ -373,7 +427,7 @@ function fireShooterProjectile(combat: CombatState, enemy: ShooterState): void {
     damage: shooterConfig.projectileDamage,
   });
 
-  combat.events.push({ type: 'enemyShotFired' });
+  combat.events.push({ type: "enemyShotFired" });
 }
 
 function updateEnemies(
@@ -381,20 +435,22 @@ function updateEnemies(
   enemies: readonly EnemyState[],
   player: PlayerState,
   deltaSeconds: number,
+  islandColliders: readonly IslandCollider[],
 ): void {
   for (const enemy of enemies) {
-    if (enemy.kind === 'chaser') {
+    if (enemy.kind === "chaser") {
       const explodedOnContact = updateChaser(
         enemy,
         player,
         deltaSeconds,
         combatConfig.playerCollisionRadius,
+        islandColliders,
       );
 
       if (explodedOnContact) {
-        recordEnemyDestroyed(combat, enemy, 'collision');
+        recordEnemyDestroyed(combat, enemy, "collision");
       }
-    } else if (updateShooter(enemy, player, deltaSeconds)) {
+    } else if (updateShooter(enemy, player, deltaSeconds, islandColliders)) {
       fireShooterProjectile(combat, enemy);
     }
   }
@@ -407,11 +463,26 @@ export function updateCombat(
   deltaSeconds: number,
   bounds: ArenaBounds,
   enemies: readonly EnemyState[],
+  islandColliders: readonly IslandCollider[],
 ): void {
   combat.events.length = 0;
+  combat.speedBoostSeconds = Math.max(
+    0,
+    combat.speedBoostSeconds - deltaSeconds,
+  );
 
   updateSplashes(combat, deltaSeconds);
-  updateEnemies(combat, enemies, player, deltaSeconds);
+
+  updateEnemies(combat, enemies, player, deltaSeconds, islandColliders);
+
   fireWeapons(combat, player, input, deltaSeconds);
-  updateProjectiles(combat, player, enemies, deltaSeconds, bounds);
+
+  updateProjectiles(
+    combat,
+    player,
+    enemies,
+    deltaSeconds,
+    bounds,
+    islandColliders,
+  );
 }

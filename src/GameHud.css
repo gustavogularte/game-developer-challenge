@@ -30,7 +30,7 @@
   justify-content: center;
   gap: 8px;
 
-  background-image: url('../assets/png/default/ui/hud/counter_panel.png');
+  background-image: url("../assets/png/default/ui/hud/counter_panel.png");
   background-position: center;
   background-repeat: no-repeat;
   background-size: 100% 100%;
@@ -61,7 +61,7 @@
   width: 256px;
   height: 48px;
 
-  background-image: url('../assets/png/default/ui/hud/health_frame.png');
+  background-image: url("../assets/png/default/ui/hud/health_frame.png");
   background-size: 100% 100%;
   background-repeat: no-repeat;
 }

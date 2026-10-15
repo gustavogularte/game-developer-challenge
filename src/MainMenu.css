@@ -5,7 +5,7 @@
   justify-content: center;
   padding: 24px;
 
-  background-image: url('../assets/ui_scene_background.png');
+  background-image: url("../assets/ui_scene_background.png");
   background-size: cover;
   background-position: center;
 }
@@ -21,7 +21,7 @@
   color: #fff0cc;
   text-align: center;
 
-  background-image: url('../assets/png/default/ui/menu/panel_menu.png');
+  background-image: url("../assets/png/default/ui/menu/panel_menu.png");
   background-size: 100% 100%;
   background-repeat: no-repeat;
 }
@@ -88,19 +88,19 @@
   color: #38240b;
   font-size: 20px;
 
-  background-image: url('../assets/png/default/ui/menu/button_primary_normal.png');
+  background-image: url("../assets/png/default/ui/menu/button_primary_normal.png");
 }
 
 .main-menu__button--primary:hover:not(:disabled) {
-  background-image: url('../assets/png/default/ui/menu/button_primary_hover.png');
+  background-image: url("../assets/png/default/ui/menu/button_primary_hover.png");
 }
 
 .main-menu__button--primary:active:not(:disabled) {
-  background-image: url('../assets/png/default/ui/menu/button_primary_pressed.png');
+  background-image: url("../assets/png/default/ui/menu/button_primary_pressed.png");
 }
 
 .main-menu__button--primary:disabled {
-  background-image: url('../assets/png/default/ui/menu/button_primary_disabled.png');
+  background-image: url("../assets/png/default/ui/menu/button_primary_disabled.png");
 }
 
 .main-menu__button--secondary {
@@ -108,7 +108,7 @@
   color: #fff0cc;
   font-size: 13px;
 
-  background-image: url('../assets/png/default/ui/menu/button_secondary_normal.png');
+  background-image: url("../assets/png/default/ui/menu/button_secondary_normal.png");
 }
 
 .main-menu__button--secondary:hover:not(:disabled) {
@@ -117,7 +117,7 @@
 
 .main-menu__button--secondary:active:not(:disabled) {
   filter: none;
-  background-image: url('../assets/png/default/ui/menu/button_secondary_pressed.png');
+  background-image: url("../assets/png/default/ui/menu/button_secondary_pressed.png");
 }
 
 .main-menu__button--secondary:disabled {

@@ -1,12 +1,20 @@
-import './MainMenu.css';
-import titleImageUrl from '../assets/png/default/ui/menu/title_pirate_battle.png';
-import pirateShipImageUrl from '../assets/png/default/ships/ship_2.png';
+import "./MainMenu.css";
+import titleImageUrl from "../assets/png/default/ui/menu/title_pirate_battle.png";
+import pirateShipImageUrl from "../assets/png/default/ships/ship_2.png";
 
 interface MainMenuProps {
   onPlay: () => void;
+  onOptions: () => void;
+  onRanking: () => void;
+  onHistory: () => void;
 }
 
-export function MainMenu({ onPlay }: MainMenuProps) {
+export function MainMenu({
+  onPlay,
+  onOptions,
+  onRanking,
+  onHistory,
+}: MainMenuProps) {
   return (
     <main className="main-menu">
       <section className="main-menu__panel">
@@ -28,6 +36,8 @@ export function MainMenu({ onPlay }: MainMenuProps) {
         <button
           type="button"
           className="main-menu__button main-menu__button--primary"
+          onClick={onOptions}
+          data-ui-sound="uiOpen"
         >
           OPTIONS
         </button>
@@ -41,16 +51,25 @@ export function MainMenu({ onPlay }: MainMenuProps) {
           <button
             type="button"
             className="main-menu__button main-menu__button--secondary"
+            onClick={onRanking}
+            data-ui-sound="uiOpen"
           >
             RANKING
           </button>
           <button
             type="button"
             className="main-menu__button main-menu__button--secondary"
+            onClick={onHistory}
+            data-ui-sound="uiOpen"
           >
             MATCH HISTORY
           </button>
         </div>
+        <p className="controls-help">
+          W / ↑: MOVE · A / D: TURN
+          <br />
+          SPACE: FRONT · Q / E: BROADSIDES · ESC: PAUSE
+        </p>
       </section>
     </main>
   );

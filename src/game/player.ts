@@ -1,5 +1,5 @@
-import type { PlayerInput } from './input';
-import type { HealthState } from './health';
+import type { PlayerInput } from "./input";
+import type { HealthState } from "./health";
 
 export interface PlayerState extends HealthState {
   x: number;

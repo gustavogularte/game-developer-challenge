@@ -1,28 +1,22 @@
-import * as PIXI from 'pixi.js';
-import { getHealthStage } from './health';
-import type { HealthStage, HealthState } from './health';
+import * as PIXI from "pixi.js";
+import { getHealthStage } from "./health";
+import type { HealthStage, HealthState } from "./health";
 
-import fireOneImageUrl from '../../assets/png/default/effects/fire_1.png';
-import fireTwoImageUrl from '../../assets/png/default/effects/fire_2.png';
+import fireOneImageUrl from "../../assets/png/default/effects/fire_1.png";
+import fireTwoImageUrl from "../../assets/png/default/effects/fire_2.png";
 
 type ShipImages = Record<HealthStage, string>;
 
 export async function createShipView(images: ShipImages) {
-  const [
-    green,
-    amber,
-    red,
-    dead,
-    fireOneTexture,
-    fireTwoTexture,
-  ] = await Promise.all([
-    PIXI.Assets.load<PIXI.Texture>(images.green),
-    PIXI.Assets.load<PIXI.Texture>(images.amber),
-    PIXI.Assets.load<PIXI.Texture>(images.red),
-    PIXI.Assets.load<PIXI.Texture>(images.dead),
-    PIXI.Assets.load<PIXI.Texture>(fireOneImageUrl),
-    PIXI.Assets.load<PIXI.Texture>(fireTwoImageUrl),
-  ]);
+  const [green, amber, red, dead, fireOneTexture, fireTwoTexture] =
+    await Promise.all([
+      PIXI.Assets.load<PIXI.Texture>(images.green),
+      PIXI.Assets.load<PIXI.Texture>(images.amber),
+      PIXI.Assets.load<PIXI.Texture>(images.red),
+      PIXI.Assets.load<PIXI.Texture>(images.dead),
+      PIXI.Assets.load<PIXI.Texture>(fireOneImageUrl),
+      PIXI.Assets.load<PIXI.Texture>(fireTwoImageUrl),
+    ]);
 
   const textures: Record<HealthStage, PIXI.Texture> = {
     green,
@@ -31,6 +25,7 @@ export async function createShipView(images: ShipImages) {
     dead,
   };
 
+  const container = new PIXI.Container();
   const sprite = new PIXI.Sprite(green);
   sprite.anchor.set(0.5);
 
@@ -46,31 +41,24 @@ export async function createShipView(images: ShipImages) {
   fireTwo.rotation = Math.PI;
   fireTwo.visible = false;
 
-  sprite.addChild(fireOne, fireTwo);
+  container.addChild(sprite, fireOne, fireTwo);
 
   let elapsedSeconds = 0;
 
-  function update(
-    health: HealthState,
-    deltaSeconds: number,
-  ): void {
+  function update(health: HealthState, deltaSeconds: number): void {
     elapsedSeconds += deltaSeconds;
 
     const stage = getHealthStage(health);
 
     sprite.texture = textures[stage];
 
-    fireOne.visible = stage === 'red';
-    fireTwo.visible = stage === 'amber' || stage === 'red';
+    fireOne.visible = stage === "red";
+    fireTwo.visible = stage === "amber" || stage === "red";
 
-    fireOne.scale.set(
-      1 + Math.sin(elapsedSeconds * 13) * 0.08,
-    );
+    fireOne.scale.set(1 + Math.sin(elapsedSeconds * 13) * 0.08);
 
-    fireTwo.scale.set(
-      1 + Math.sin(elapsedSeconds * 17 + 1) * 0.08,
-    );
+    fireTwo.scale.set(1 + Math.sin(elapsedSeconds * 17 + 1) * 0.08);
   }
 
-  return { sprite, update };
+  return { sprite, container, update };
 }

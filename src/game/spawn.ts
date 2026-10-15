@@ -2,10 +2,12 @@ import {
   chaserConfig,
   createChaser,
   createShooter,
+  enemyConfig,
   shooterConfig,
   type EnemyState,
-} from './enemy';
-import type { ArenaBounds, PlayerState } from './player';
+} from "./enemy";
+import type { ArenaBounds, PlayerState } from "./player";
+import { isCirclePathBlocked, type IslandCollider } from "./islandGeometry";
 
 interface SpawnState {
   elapsedSeconds: number;
@@ -19,6 +21,8 @@ export const spawnConfig = {
   minimumEnemyGap: 80,
   maxPositionAttempts: 20,
   chaserProbability: 0.5,
+  standardShooterProbability: 0.75,
+  healerShooterProbability: 0.2,
 };
 
 const largestEnemyRadius = Math.max(chaserConfig.radius, shooterConfig.radius);
@@ -33,6 +37,7 @@ function findSpawnPosition(
   player: PlayerState,
   enemies: readonly EnemyState[],
   bounds: ArenaBounds,
+  islandColliders: readonly IslandCollider[],
   random: () => number,
 ): { x: number; y: number } | undefined {
   const margin = spawnConfig.arenaMargin;
@@ -52,6 +57,17 @@ function findSpawnPosition(
     if (playerDistance < spawnConfig.minimumPlayerDistance) {
       continue;
     }
+
+    const position = { x, y };
+
+    const overlapsIsland = isCirclePathBlocked(
+      position,
+      position,
+      enemyConfig.islandCollisionRadius,
+      islandColliders,
+    );
+
+    if (overlapsIsland) continue;
 
     const isNearEnemy = enemies.some((enemy) => {
       if (enemy.health <= 0) return false;
@@ -76,17 +92,22 @@ export function updateEnemySpawning(
   enemies: readonly EnemyState[],
   deltaSeconds: number,
   bounds: ArenaBounds,
+  islandColliders: readonly IslandCollider[],
   random: () => number = Math.random,
+  intervalSeconds: number = spawnConfig.intervalSeconds,
 ): EnemyState[] {
-  if (player.health <= 0) return [];
+  if (
+    player.health <= 0 ||
+    !Number.isFinite(intervalSeconds) ||
+    intervalSeconds <= 0
+  )
+    return [];
 
   state.elapsedSeconds += deltaSeconds;
 
-  const scheduledSpawns = Math.floor(
-    state.elapsedSeconds / spawnConfig.intervalSeconds,
-  );
+  const scheduledSpawns = Math.floor(state.elapsedSeconds / intervalSeconds);
 
-  state.elapsedSeconds %= spawnConfig.intervalSeconds;
+  state.elapsedSeconds %= intervalSeconds;
 
   const spawnedEnemies: EnemyState[] = [];
   const activeEnemies = enemies.filter((enemy) => enemy.health > 0);
@@ -103,6 +124,7 @@ export function updateEnemySpawning(
       player,
       [...activeEnemies, ...spawnedEnemies],
       bounds,
+      islandColliders,
       random,
     );
 
@@ -111,10 +133,21 @@ export function updateEnemySpawning(
     const enemy =
       random() < spawnConfig.chaserProbability
         ? createChaser(position.x, position.y)
-        : createShooter(position.x, position.y);
+        : createShooter(position.x, position.y, chooseShooterVariant(random()));
 
     spawnedEnemies.push(enemy);
   }
 
   return spawnedEnemies;
+}
+
+function chooseShooterVariant(roll: number) {
+  if (roll < spawnConfig.standardShooterProbability) return "standard";
+  if (
+    roll <
+    spawnConfig.standardShooterProbability +
+      spawnConfig.healerShooterProbability
+  )
+    return "healer";
+  return "speed";
 }

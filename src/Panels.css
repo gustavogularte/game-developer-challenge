@@ -3,12 +3,12 @@
   padding: 24px;
   display: grid;
   place-items: center;
-  background: url("../assets/ui_scene_background.png") center/cover fixed;
+  background: url('../assets/ui_scene_background.png') center/cover fixed;
   color: #fff0cc;
 }
 .framed-panel,
 .pirate-dialog {
-  background: url("../assets/png/default/ui/menu/panel_menu.png") center/100%
+  background: url('../assets/png/default/ui/menu/panel_menu.png') center/100%
     100% no-repeat;
   color: #fff0cc;
   text-align: center;
@@ -60,7 +60,7 @@
   padding: 14px 24px;
   border: 0;
   background: transparent
-    url("../assets/png/default/ui/menu/button_primary_normal.png") center/100%
+    url('../assets/png/default/ui/menu/button_primary_normal.png') center/100%
     100% no-repeat;
   color: #38240b;
   font-weight: 700;
@@ -68,20 +68,20 @@
   cursor: pointer;
 }
 .gold-button:hover:not(:disabled) {
-  background-image: url("../assets/png/default/ui/menu/button_primary_hover.png");
+  background-image: url('../assets/png/default/ui/menu/button_primary_hover.png');
 }
 .gold-button:active:not(:disabled) {
-  background-image: url("../assets/png/default/ui/menu/button_primary_pressed.png");
+  background-image: url('../assets/png/default/ui/menu/button_primary_pressed.png');
 }
 .gold-button:disabled {
-  background-image: url("../assets/png/default/ui/menu/button_primary_disabled.png");
+  background-image: url('../assets/png/default/ui/menu/button_primary_disabled.png');
 }
 .secondary-button {
-  background-image: url("../assets/png/default/ui/menu/button_secondary_normal.png");
+  background-image: url('../assets/png/default/ui/menu/button_secondary_normal.png');
   color: #fff0cc;
 }
 .secondary-button:active {
-  background-image: url("../assets/png/default/ui/menu/button_secondary_pressed.png");
+  background-image: url('../assets/png/default/ui/menu/button_secondary_pressed.png');
 }
 .round-button {
   width: 48px;
@@ -95,7 +95,7 @@
   font-weight: 700;
   font-size: 26px;
   background: transparent
-    url("../assets/png/default/ui/controls/button_round_normal.png")
+    url('../assets/png/default/ui/controls/button_round_normal.png')
     center/contain no-repeat;
 }
 .round-button img {
@@ -104,10 +104,10 @@
   object-fit: contain;
 }
 .round-button:hover:not(:disabled) {
-  background-image: url("../assets/png/default/ui/controls/button_round_hover.png");
+  background-image: url('../assets/png/default/ui/controls/button_round_hover.png');
 }
 .round-button:active:not(:disabled) {
-  background-image: url("../assets/png/default/ui/controls/button_round_pressed.png");
+  background-image: url('../assets/png/default/ui/controls/button_round_pressed.png');
 }
 button:disabled {
   opacity: 0.5;
@@ -119,8 +119,8 @@ summary:focus-visible {
   outline: 3px solid #ffe49b;
   outline-offset: 4px;
 }
-h1[tabindex="-1"],
-h2[tabindex="-1"] {
+h1[tabindex='-1'],
+h2[tabindex='-1'] {
   outline: none;
 }
 .pirate-dialog {
@@ -412,8 +412,8 @@ body:has(.game-frame) {
   display: flex;
   gap: 8px;
 }
-.touch-controls button[aria-pressed="true"] {
-  background-image: url("../assets/png/default/ui/controls/button_round_pressed.png");
+.touch-controls button[aria-pressed='true'] {
+  background-image: url('../assets/png/default/ui/controls/button_round_pressed.png');
 }
 @media (pointer: coarse) {
   .touch-controls {
@@ -450,7 +450,23 @@ body:has(.game-frame) {
     flex-basis: 44px;
   }
 }
-/* Browsers that refuse orientation locking still receive a logical landscape game. */
+
+.pagination__arrow {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-top: 3px solid currentColor;
+  border-right: 3px solid currentColor;
+}
+
+.pagination__arrow--previous {
+  transform: translateX(2px) rotate(-135deg);
+}
+
+.pagination__arrow--next {
+  transform: translateX(-2px) rotate(45deg);
+}
+
 @media (pointer: coarse) and (orientation: portrait) {
   .game-frame {
     width: 100dvh;

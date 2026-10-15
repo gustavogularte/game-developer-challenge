@@ -162,7 +162,10 @@ export function CaptainsLog({
                 disabled={page <= 1}
                 onClick={() => setPage((value) => value - 1)}
               >
-                ‹
+                <span
+                  aria-hidden="true"
+                  className="pagination__arrow pagination__arrow--previous"
+                />
               </button>
               <span>
                 PAGE {page} OF {totalPages}
@@ -173,7 +176,10 @@ export function CaptainsLog({
                 disabled={page >= totalPages}
                 onClick={() => setPage((value) => value + 1)}
               >
-                ›
+                <span
+                  aria-hidden="true"
+                  className="pagination__arrow pagination__arrow--next"
+                />
               </button>
             </nav>
           </>

@@ -22,12 +22,26 @@ export function PauseDialog({
     titleRef.current?.focus();
     return () => dialog.close();
   }, []);
+  function dismissPause(): void {
+    if (options) setOptions(false);
+    else onResume();
+  }
   return (
     <dialog
       ref={dialogRef}
       className="pirate-dialog"
       aria-label={options ? 'Options' : 'Pause'}
-      onCancel={(event) => event.preventDefault()}
+      onKeyDown={(event) => {
+        if (event.key !== 'Escape') return;
+        // Keep the native dialog and simulation pause state in sync.
+        event.preventDefault();
+        event.stopPropagation();
+        if (!event.repeat) dismissPause();
+      }}
+      onCancel={(event) => {
+        event.preventDefault();
+        dismissPause();
+      }}
     >
       {options ? (
         <OptionsPanel

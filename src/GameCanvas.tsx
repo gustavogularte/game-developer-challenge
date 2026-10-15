@@ -1,26 +1,26 @@
-import { createCrewLayer } from './game/createCrewLayer';
-import { createPlayerFeedback } from './game/createPlayerFeedback';
-import { getShipIslandRadius } from './game/collision';
-import { getCameraTransform } from './game/camera';
-import * as React from 'react';
-import * as PIXI from 'pixi.js';
-import type { PlayerInput } from './game/input';
-import type { GameSettings } from './game/settings';
+import { createCrewLayer } from "./game/createCrewLayer";
+import { createPlayerFeedback } from "./game/createPlayerFeedback";
+import { getShipIslandRadius } from "./game/collision";
+import { getCameraTransform } from "./game/camera";
+import * as React from "react";
+import * as PIXI from "pixi.js";
+import type { PlayerInput } from "./game/input";
+import type { GameSettings } from "./game/settings";
 import {
   rewardConfig,
   collectHealthPickups,
   type HealthPickup,
-} from './game/rewards';
-import { createWakeLayer } from './game/createWakeLayer';
-import woodImageUrl from '../assets/png/default/ship_parts/wood_1.png';
+} from "./game/rewards";
+import { createWakeLayer } from "./game/createWakeLayer";
+import woodImageUrl from "../assets/png/default/ship_parts/wood_1.png";
 export interface GameControls {
   pause?: () => void;
   resume?: () => void;
   setInput?: (action: keyof PlayerInput, pressed: boolean) => void;
 }
 const shipUrls = import.meta.glob<string>(
-  '../assets/png/default/ships/ship_*.png',
-  { eager: true, query: '?url', import: 'default' },
+  "../assets/png/default/ships/ship_*.png",
+  { eager: true, query: "?url", import: "default" },
 );
 function variantImages(base: number) {
   return {
@@ -33,23 +33,23 @@ function variantImages(base: number) {
 const healerImages = variantImages(4);
 const speedImages = variantImages(6);
 
-import oceanImageUrl from '../assets/png/default/tiles/tile_73.png';
-import cannonBallImageUrl from '../assets/png/default/ship_parts/cannon_ball.png';
-import explosionImageUrl from '../assets/png/default/effects/explosion_1.png';
-import playerGreenImageUrl from '../assets/png/default/ships/ship_2.png';
-import playerAmberImageUrl from '../assets/png/default/ships/ship_8.png';
-import playerRedImageUrl from '../assets/png/default/ships/ship_14.png';
-import playerDeadImageUrl from '../assets/png/default/ships/ship_20.png';
-import chaserGreenImageUrl from '../assets/png/default/ships/ship_3.png';
-import chaserAmberImageUrl from '../assets/png/default/ships/ship_9.png';
-import chaserRedImageUrl from '../assets/png/default/ships/ship_15.png';
-import chaserDeadImageUrl from '../assets/png/default/ships/ship_21.png';
-import shooterGreenImageUrl from '../assets/png/default/ships/ship_5.png';
-import shooterAmberImageUrl from '../assets/png/default/ships/ship_11.png';
-import shooterRedImageUrl from '../assets/png/default/ships/ship_17.png';
-import shooterDeadImageUrl from '../assets/png/default/ships/ship_23.png';
-import { arenaConfig } from './game/arena';
-import { createGameAudio } from './game/audio';
+import oceanImageUrl from "../assets/png/default/tiles/tile_73.png";
+import cannonBallImageUrl from "../assets/png/default/ship_parts/cannon_ball.png";
+import explosionImageUrl from "../assets/png/default/effects/explosion_1.png";
+import playerGreenImageUrl from "../assets/png/default/ships/ship_2.png";
+import playerAmberImageUrl from "../assets/png/default/ships/ship_8.png";
+import playerRedImageUrl from "../assets/png/default/ships/ship_14.png";
+import playerDeadImageUrl from "../assets/png/default/ships/ship_20.png";
+import chaserGreenImageUrl from "../assets/png/default/ships/ship_3.png";
+import chaserAmberImageUrl from "../assets/png/default/ships/ship_9.png";
+import chaserRedImageUrl from "../assets/png/default/ships/ship_15.png";
+import chaserDeadImageUrl from "../assets/png/default/ships/ship_21.png";
+import shooterGreenImageUrl from "../assets/png/default/ships/ship_5.png";
+import shooterAmberImageUrl from "../assets/png/default/ships/ship_11.png";
+import shooterRedImageUrl from "../assets/png/default/ships/ship_17.png";
+import shooterDeadImageUrl from "../assets/png/default/ships/ship_23.png";
+import { arenaConfig } from "./game/arena";
+import { createGameAudio } from "./game/audio";
 import {
   createCombatState,
   projectileConfig,
@@ -58,31 +58,31 @@ import {
   type CombatEvent,
   type ProjectileState,
   type SplashState,
-} from './game/combat';
-import { createHealthBar } from './game/createHealthBar';
-import { createShipView } from './game/createShipView';
-import { enemyConfig, type EnemyState } from './game/enemy';
-import { getHealthStage } from './game/health';
-import { createPlayerInput } from './game/input';
-import { bindKeyboardInput } from './game/keyboard';
+} from "./game/combat";
+import { createHealthBar } from "./game/createHealthBar";
+import { createShipView } from "./game/createShipView";
+import { enemyConfig, type EnemyState } from "./game/enemy";
+import { getHealthStage } from "./game/health";
+import { createPlayerInput } from "./game/input";
+import { bindKeyboardInput } from "./game/keyboard";
 import {
   constrainPlayerToArena,
   updatePlayerMovement,
   type PlayerState,
-} from './game/player';
-import { createSpawnState, updateEnemySpawning } from './game/spawn';
-import { createIslands } from './game/islands';
-import { createIslandLayer } from './game/createIslandLayer';
+} from "./game/player";
+import { createSpawnState, updateEnemySpawning } from "./game/spawn";
+import { createIslands } from "./game/islands";
+import { createIslandLayer } from "./game/createIslandLayer";
 import {
   createIslandColliders,
   isCirclePathBlocked,
-} from './game/islandGeometry';
+} from "./game/islandGeometry";
 import {
   createMatchState,
   getRemainingSeconds,
   advanceMatch,
   type MatchResult,
-} from './game/match';
+} from "./game/match";
 
 interface GameCanvasProps {
   settings: GameSettings;
@@ -113,7 +113,7 @@ interface DestructionEffect {
 }
 
 const sceneConfig = {
-  backgroundColor: '#167b9c',
+  backgroundColor: "#167b9c",
   maxResolution: 2,
   millisecondsPerSecond: 1000,
   shipRotationOffset: Math.PI,
@@ -161,10 +161,10 @@ const destructionAppearance = {
   scaleGrowth: 1,
   labelOffsetY: -40,
   labelRiseDistance: 35,
-  fontFamily: 'monospace',
+  fontFamily: "monospace",
   fontSize: 28,
-  textColor: '#ffe08a',
-  textStrokeColor: '#38240b',
+  textColor: "#ffe08a",
+  textStrokeColor: "#38240b",
   textStrokeWidth: 4,
 };
 
@@ -183,13 +183,13 @@ export function GameCanvas({
   onMatchEnd,
 }: GameCanvasProps) {
   const [loadState, setLoadState] = React.useState<
-    'loading' | 'ready' | 'error'
-  >('loading');
+    "loading" | "ready" | "error"
+  >("loading");
   const [loadAttempt, setLoadAttempt] = React.useState(0);
   const containerRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
-    setLoadState('loading');
+    setLoadState("loading");
     const app = new PIXI.Application();
     const input = createPlayerInput();
     const keyboardInput = createPlayerInput();
@@ -354,23 +354,23 @@ export function GameCanvas({
 
         try {
           const images =
-            enemy.kind === 'chaser'
+            enemy.kind === "chaser"
               ? chaserImages
-              : enemy.variant === 'healer'
+              : enemy.variant === "healer"
                 ? healerImages
-                : enemy.variant === 'speed'
+                : enemy.variant === "speed"
                   ? speedImages
                   : shooterImages;
 
           ship = await createShipView(images);
 
-          if (cancelled || match.status !== 'playing' || player.health <= 0) {
+          if (cancelled || match.status !== "playing" || player.health <= 0) {
             return;
           }
 
           healthBar = await createHealthBar();
 
-          if (cancelled || match.status !== 'playing' || player.health <= 0) {
+          if (cancelled || match.status !== "playing" || player.health <= 0) {
             return;
           }
 
@@ -399,7 +399,7 @@ export function GameCanvas({
           enemies.push(enemy);
           committed = true;
         } catch (error: unknown) {
-          console.error('Failed to create enemy view:', error);
+          console.error("Failed to create enemy view:", error);
         } finally {
           pendingEnemies.delete(enemy);
 
@@ -440,7 +440,7 @@ export function GameCanvas({
         ocean.width = app.screen.width;
         ocean.height = app.screen.height;
         updateCamera();
-        if (match.status === 'finished' || paused) app.render();
+        if (match.status === "finished" || paused) app.render();
       }
 
       function syncPlayerView(deltaSeconds: number): void {
@@ -577,7 +577,7 @@ export function GameCanvas({
           style: {
             fontFamily: destructionAppearance.fontFamily,
             fontSize: destructionAppearance.fontSize,
-            fontWeight: 'bold',
+            fontWeight: "bold",
             fill: destructionAppearance.textColor,
             stroke: {
               color: destructionAppearance.textStrokeColor,
@@ -631,27 +631,27 @@ export function GameCanvas({
 
         for (const event of events) {
           switch (event.type) {
-            case 'shotFired':
+            case "shotFired":
               gameAudio?.play(
-                event.action === 'fireFront' ? 'frontShot' : 'broadside',
+                event.action === "fireFront" ? "frontShot" : "broadside",
               );
               break;
-            case 'enemyShotFired':
-              gameAudio?.play('frontShot');
+            case "enemyShotFired":
+              gameAudio?.play("frontShot");
               break;
-            case 'waterHit':
-              gameAudio?.play('waterHit');
+            case "waterHit":
+              gameAudio?.play("waterHit");
               break;
-            case 'enemyDestroyed':
+            case "enemyDestroyed":
               createDestructionEffect(event.x, event.y, event.points);
               crew.spawn(event.x, event.y);
-              gameAudio?.play('explosion');
-              gameAudio?.play('enemySinking');
+              gameAudio?.play("explosion");
+              gameAudio?.play("enemySinking");
 
               if (event.points > 0) {
-                if (event.reward === 'speed')
+                if (event.reward === "speed")
                   combat.speedBoostSeconds = rewardConfig.boostDurationSeconds;
-                if (event.reward === 'heal')
+                if (event.reward === "heal")
                   pickups.push({
                     x: event.x,
                     y: event.y,
@@ -659,7 +659,7 @@ export function GameCanvas({
                   });
                 score += event.points;
                 scoreChanged = true;
-                gameAudio?.play('score');
+                gameAudio?.play("score");
               }
               break;
           }
@@ -669,10 +669,10 @@ export function GameCanvas({
       }
 
       function syncLowHealthAudio(): void {
-        if (getHealthStage(player) === 'red') {
-          gameAudio?.play('lowHealth');
+        if (getHealthStage(player) === "red") {
+          gameAudio?.play("lowHealth");
         } else {
-          gameAudio?.stop('lowHealth');
+          gameAudio?.stop("lowHealth");
         }
       }
 
@@ -696,9 +696,9 @@ export function GameCanvas({
             const label = new PIXI.Text({
               text: `HEAL +${rewardConfig.healAmount}`,
               style: {
-                fontFamily: 'monospace',
+                fontFamily: "monospace",
                 fontSize: 24,
-                fontWeight: 'bold',
+                fontWeight: "bold",
                 fill: 0x64ff8e,
                 stroke: { color: 0x073b19, width: 4 },
               },
@@ -719,10 +719,10 @@ export function GameCanvas({
         Object.assign(touchInput, createPlayerInput());
         unbindKeyboardInput?.();
         unbindKeyboardInput = undefined;
-        gameAudio?.stop('ocean');
-        gameAudio?.stop('sailing');
-        gameAudio?.stop('lowHealth');
-        gameAudio?.play('gamePause');
+        gameAudio?.stop("ocean");
+        gameAudio?.stop("sailing");
+        gameAudio?.stop("lowHealth");
+        gameAudio?.play("gamePause");
         app.stop();
         onPauseChange(true);
       }
@@ -731,8 +731,8 @@ export function GameCanvas({
         paused = false;
         skipNextDelta = true;
         unbindKeyboardInput = bindKeyboardInput(keyboardInput);
-        gameAudio?.play('gameResume');
-        gameAudio?.play('ocean');
+        gameAudio?.play("gameResume");
+        gameAudio?.play("ocean");
         syncLowHealthAudio();
         onPauseChange(false);
         app.start();
@@ -741,7 +741,16 @@ export function GameCanvas({
         if (document.hidden) pause();
       }
       function onPauseKey(event: KeyboardEvent): void {
-        if (event.code === 'Escape') pause();
+        if (
+          event.code !== "Escape" ||
+          event.defaultPrevented ||
+          event.repeat ||
+          paused ||
+          match.result
+        ) return;
+        // Suppress the browser's native cancel action when opening the dialog.
+        event.preventDefault();
+        pause();
       }
       controls.pause = pause;
       controls.resume = resume;
@@ -750,7 +759,7 @@ export function GameCanvas({
       };
 
       function updateFrame(ticker: PIXI.Ticker): void {
-        if (match.status !== 'playing' || paused) return;
+        if (match.status !== "playing" || paused) return;
         if (skipNextDelta) {
           skipNextDelta = false;
           return;
@@ -813,8 +822,8 @@ export function GameCanvas({
             player.x - previousPlayerPosition.x,
             player.y - previousPlayerPosition.y,
           ) > 0;
-        if (playerMoved) gameAudio?.play('sailing');
-        else gameAudio?.stop('sailing');
+        if (playerMoved) gameAudio?.play("sailing");
+        else gameAudio?.stop("sailing");
         updateDestructionEffects(deltaSeconds);
         handleCombatEvents(combat.events);
         const boostSeconds = Math.ceil(combat.speedBoostSeconds);
@@ -845,22 +854,22 @@ export function GameCanvas({
           unbindKeyboardInput?.();
           unbindKeyboardInput = undefined;
 
-          gameAudio?.stop('ocean');
-          gameAudio?.stop('sailing');
-          gameAudio?.stop('lowHealth');
+          gameAudio?.stop("ocean");
+          gameAudio?.stop("sailing");
+          gameAudio?.stop("lowHealth");
 
           app.stop();
           app.render();
 
           gameAudio?.play(
-            match.result.reason === 'timeUp' ? 'gameComplete' : 'gameOver',
+            match.result.reason === "timeUp" ? "gameComplete" : "gameOver",
           );
           onMatchEnd(match.result);
         }
       }
 
       gameAudio = await createGameAudio().catch((error: unknown) => {
-        console.error('Failed to load game audio:', error);
+        console.error("Failed to load game audio:", error);
         return undefined;
       });
 
@@ -870,10 +879,10 @@ export function GameCanvas({
         return;
       }
 
-      window.addEventListener('blur', pause);
-      document.addEventListener('visibilitychange', onVisibilityChange);
-      window.addEventListener('keydown', onPauseKey);
-      app.renderer.on('resize', resizeScene);
+      window.addEventListener("blur", pause);
+      document.addEventListener("visibilitychange", onVisibilityChange);
+      window.addEventListener("keydown", onPauseKey);
+      app.renderer.on("resize", resizeScene);
       app.ticker.add(updateFrame);
       const resizeObserver = new ResizeObserver(() => {
         if (!cancelled) app.resize();
@@ -881,10 +890,10 @@ export function GameCanvas({
       resizeObserver.observe(containerRef.current!);
       unbindScene = () => {
         resizeObserver.disconnect();
-        window.removeEventListener('blur', pause);
-        document.removeEventListener('visibilitychange', onVisibilityChange);
-        window.removeEventListener('keydown', onPauseKey);
-        app.renderer.off('resize', resizeScene);
+        window.removeEventListener("blur", pause);
+        document.removeEventListener("visibilitychange", onVisibilityChange);
+        window.removeEventListener("keydown", onPauseKey);
+        app.renderer.off("resize", resizeScene);
         app.ticker.remove(updateFrame);
       };
       unbindKeyboardInput = bindKeyboardInput(keyboardInput);
@@ -897,17 +906,17 @@ export function GameCanvas({
       onTimeChange(lastDisplayedSeconds);
       syncLowHealthAudio();
       containerRef.current?.appendChild(app.canvas);
-      setLoadState('ready');
-      gameAudio?.play('ocean');
-      gameAudio?.play('gameStart');
+      setLoadState("ready");
+      gameAudio?.play("ocean");
+      gameAudio?.play("gameStart");
       app.start();
       if (document.hidden || !document.hasFocus()) pause();
     }
 
     void start().catch((error: unknown) => {
       if (cancelled) return;
-      setLoadState('error');
-      console.error('Failed to initialize PixiJS:', error);
+      setLoadState("error");
+      console.error("Failed to initialize PixiJS:", error);
       cleanup();
     });
 
@@ -927,10 +936,10 @@ export function GameCanvas({
   return (
     <>
       <div className="game-canvas" ref={containerRef} />
-      {loadState !== 'ready' && (
+      {loadState !== "ready" && (
         <div className="loading-overlay" role="status">
-          {loadState === 'loading' ? (
-            'Loading the sea…'
+          {loadState === "loading" ? (
+            "Loading the sea…"
           ) : (
             <>
               <p>Could not load the battle.</p>

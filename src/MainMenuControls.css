@@ -1,0 +1,36 @@
+.menu-controls {
+  width: 100%;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid rgb(255 240 204 / 20%);
+  color: #fff0cc;
+  font-family: monospace;
+  font-size: 11px;
+  line-height: 1.8;
+  text-align: center;
+}
+
+.menu-controls h2 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.main-menu__panel .menu-controls p + p {
+  margin-top: 4px;
+}
+
+.menu-controls kbd {
+  display: inline-block;
+  min-width: 22px;
+  padding: 1px 4px;
+  border: 1px solid #8e784d;
+  border-bottom-width: 3px;
+  border-radius: 4px;
+  background: #343a31;
+  color: #ffda85;
+  font: inherit;
+  font-weight: 700;
+  text-align: center;
+}

@@ -1,4 +1,5 @@
 import './MainMenu.css';
+import './MainMenuControls.css';
 import titleImageUrl from '../assets/png/default/ui/menu/title_pirate_battle.png';
 import pirateShipImageUrl from '../assets/png/default/ships/ship_2.png';
 
@@ -65,6 +66,19 @@ export function MainMenu({
             MATCH HISTORY
           </button>
         </div>
+        <section className="menu-controls" aria-label="Keyboard controls">
+          <h2>CONTROLS</h2>
+          <p>
+            <kbd>W</kbd> / <kbd>↑</kbd> Forward · <kbd>A</kbd> / <kbd>←</kbd>{' '}
+            Left · <kbd>D</kbd> / <kbd>→</kbd> Right
+          </p>
+          <p>
+            <kbd>Space</kbd> Front shot · <kbd>Q</kbd> / <kbd>E</kbd> Side shots
+          </p>
+          <p>
+            <kbd>Esc</kbd> Pause / resume
+          </p>
+        </section>
       </section>
     </main>
   );
